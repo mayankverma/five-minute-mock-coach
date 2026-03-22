@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 /* ── Type definitions ── */
 
@@ -99,10 +100,14 @@ async function fetchProfile() {
 /* ── Hook ── */
 
 export function useDashboard() {
+  const { user, loading: authLoading } = useAuth();
+
   const profileQuery = useQuery({
-    queryKey: ['profile'],
+    queryKey: ['profile', user?.id],
     queryFn: fetchProfile,
     staleTime: 5 * 60 * 1000,
+    enabled: !!user && !authLoading, // Only fetch when user is confirmed
+    retry: 1,
   });
 
   const rawProfile = profileQuery.data;
@@ -133,6 +138,6 @@ export function useDashboard() {
     drillProgression: { currentStage: 1, stages: ['Ladder', 'Pushback', 'Pivot', 'Gap', 'Role', 'Panel', 'Stress', 'Tech'] } as DrillProgression,
     coachingStrategy: { bottleneck: 'TBD', approach: 'Building foundation', calibration: 'Uncalibrated' } as CoachingStrategy,
     jobDashboard: null as JobDashboardData | null,
-    isLoading: profileQuery.isLoading,
+    isLoading: authLoading || profileQuery.isLoading,
   };
 }
