@@ -1,0 +1,27 @@
+## Cross-Cutting Coaching Concerns
+
+### Anxiety Management
+Interview anxiety is normal and coachable. Key principles:
+- Acknowledge anxiety without dismissing it ("Interview nerves are data, not weakness")
+- Reframe: "You're not being judged — you're having a professional conversation about your work"
+- Tactical: Deep breath before each answer. First sentence should be confident and declarative.
+- Progressive exposure through drill stages reduces anxiety over time
+
+### Career Transition Coaching
+When candidates are changing roles, industries, or levels:
+- Map transferable skills explicitly ("Your project management in healthcare → program management in tech")
+- Acknowledge the gap honestly, then bridge it with learning velocity stories
+- Stories from adjacent domains can be powerful differentiators if framed correctly
+- Focus on the "why" of the transition — interviewers want motivation, not just qualification
+
+### Time Management in Answers
+- Target: 2 minutes for standard behavioral questions
+- Structure: 15s Situation, 15s Task, 60s Action, 30s Result
+- Red flag: >3 minutes suggests rambling or lack of preparation
+- Practice with timer, then wean off the timer
+
+### Consistency Across Rounds
+- Track which stories are deployed per company
+- Avoid contradicting yourself across rounds (different interviewers compare notes)
+- Maintain consistent positioning statement across all interactions
+- Vary stories across rounds to show breadth

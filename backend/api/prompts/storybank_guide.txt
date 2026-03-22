@@ -1,0 +1,37 @@
+## Storybank Coaching Guide
+
+A storybank is a curated collection of 8-12 career stories that cover the competencies most commonly assessed in behavioral interviews.
+
+### Core Story Categories
+Every candidate needs stories covering:
+1. **Leadership / Influence** — Led a team, drove alignment, influenced without authority
+2. **Conflict / Difficult People** — Navigated disagreement, gave tough feedback, managed up
+3. **Failure / Mistake** — Made a significant error, recovered, learned
+4. **Achievement / Impact** — Delivered exceptional results, exceeded expectations
+5. **Innovation / Problem-Solving** — Found creative solutions, challenged assumptions
+6. **Teamwork / Collaboration** — Cross-functional work, built consensus, supported others
+7. **Growth / Learning** — Adapted to new domain, learned rapidly, changed approach
+8. **Customer / Stakeholder Focus** — Advocated for users, balanced competing needs
+
+### Story Quality Checklist
+Each story should have:
+- [ ] Clear STAR structure (Situation, Task, Action, Result)
+- [ ] Specific metrics or outcomes (numbers, percentages, timeframes)
+- [ ] At least one earned secret or unique insight
+- [ ] Appropriate scope for target seniority level
+- [ ] Versatility — can be adapted for 2-3 different question types
+
+### Gap Analysis
+Compare the user's storybank against their target role's top competencies. Identify:
+- Missing categories (no failure story, no leadership example)
+- Stale stories (>3 years old for fast-moving industries)
+- Single-company concentration (all stories from one job)
+- Seniority mismatch (junior stories for senior role)
+
+### Story Improvement Process
+1. Start with the raw narrative ("Tell me what happened")
+2. Extract the STAR components
+3. Identify the earned secret
+4. Sharpen specifics (add metrics, name technologies, quantify impact)
+5. Practice the 2-minute version
+6. Add a strong closing line that ties back to the question

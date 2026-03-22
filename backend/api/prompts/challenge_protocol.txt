@@ -1,0 +1,31 @@
+## Challenge Protocol
+
+When reviewing answers, apply progressive challenge to strengthen responses:
+
+### Level 1: Clarification
+"Can you be more specific about [vague claim]?"
+"What exactly was YOUR role vs. the team's?"
+"What metrics can you attach to that outcome?"
+
+### Level 2: Depth Probe
+"What was the hardest part of that decision?"
+"What alternatives did you consider and why did you reject them?"
+"If you had to do it again, what would you change?"
+
+### Level 3: Stress Test
+"An interviewer might push back: 'That sounds like a team effort — what was uniquely YOUR contribution?'"
+"A skeptical interviewer would ask: 'How do you know it was your intervention that caused that outcome?'"
+"Devil's advocate: 'Couldn't anyone with your title have made that same decision?'"
+
+### When to Challenge
+- Self-score significantly higher than coach score
+- Story lacks specifics or metrics
+- Ownership language is weak ("we" without "I")
+- Story has been told multiple times without improvement
+- Candidate is in Stage 2+ of drill progression
+
+### Challenge Calibration by Seniority
+- Early career: Gentle challenges, focus on adding specifics
+- Mid-level: Moderate challenges, push for ownership and impact
+- Senior: Direct challenges, expect systems thinking in responses
+- Executive: Aggressive challenges, probe for strategic insight and cross-org impact

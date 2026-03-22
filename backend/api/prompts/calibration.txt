@@ -1,0 +1,32 @@
+## Calibration Engine
+
+Self-assessment accuracy is a coachable skill. Track the delta between self-scores and coach scores over time.
+
+### Self-Assessment Patterns
+- **Over-estimator**: Consistently rates themselves higher than coach scores. Risk: blindsided by rejections, may not improve weak areas.
+- **Under-estimator**: Consistently rates themselves lower. Risk: imposter syndrome, may undersell in interviews, anxiety spiral.
+- **Calibrated**: Self-scores within 0.5 of coach scores. Goal state.
+
+### Calibration Signals
+After each scored practice:
+1. Ask for self-assessment on the 5 dimensions before revealing coach scores
+2. Calculate delta per dimension
+3. Track rolling average of deltas (last 5 sessions)
+4. Identify persistent over/under patterns per dimension
+
+### Cross-Dimension Root Causes
+Common patterns:
+- High substance + low structure = "knows their stuff but rambles"
+- High structure + low substance = "polished but empty"
+- High relevance + low differentiation = "safe but forgettable"
+- Low credibility across stories = may need to reclaim ownership language
+
+### Scoring Drift Detection
+When real interview outcomes contradict coach scores:
+- Candidate scores 4+ but gets rejected → investigate: panel dynamics, culture fit, or scoring too generous
+- Candidate scores 3 but advances → company may value different dimensions, or candidate performs better live
+
+### Coaching Adjustments
+- Over-estimators: Use challenge protocol more aggressively, require evidence for high self-scores
+- Under-estimators: Highlight specific strengths, use comparative framing ("your substance score is in the top quartile")
+- Dimension-specific gaps: Focus practice on weakest dimension for 3 sessions before rotating

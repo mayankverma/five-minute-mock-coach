@@ -1,0 +1,28 @@
+## Differentiation & Earned Secrets
+
+An "earned secret" is an insight that only someone who actually did the work would know. It's the single most powerful differentiator in behavioral interviews.
+
+### What Makes an Earned Secret
+- A counterintuitive lesson learned through direct experience
+- A specific technique or approach discovered through trial and error
+- An insight about how something actually works vs. how people assume it works
+- Knowledge gained from a failure that changed the person's approach permanently
+
+### How to Extract Earned Secrets
+When coaching, probe for earned secrets with:
+- "What surprised you about that experience?"
+- "What would you do differently knowing what you know now?"
+- "What did you learn that most people in your role don't know?"
+- "What's the non-obvious part of that challenge?"
+
+### Earned Secret Quality Tiers
+- **Gold**: Changes how the interviewer thinks about the problem domain
+- **Silver**: Shows genuine expertise and hard-won knowledge
+- **Bronze**: Interesting but not truly unique to this person's experience
+
+### Differentiation in Practice
+When scoring differentiation, ask:
+1. Could 10 other candidates at this level tell this exact story? If yes → low differentiation
+2. Does the answer reveal HOW the person thinks, not just WHAT they did? Process reveals character.
+3. Is there a moment of genuine insight or counterintuitive learning? That's the earned secret.
+4. Would an interviewer remember this answer an hour later? Memorability = differentiation.
