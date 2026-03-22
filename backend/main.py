@@ -2,13 +2,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
-from backend.api.routers import auth, questions, practice, stories, workspaces, prep, progress, materials
+from backend.api.routers import auth, questions, practice, stories, workspaces, prep, progress, materials, billing, voice
 
 app = FastAPI(title="Five Minute Mock Coach", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,6 +23,8 @@ app.include_router(workspaces.router)
 app.include_router(prep.router)
 app.include_router(progress.router)
 app.include_router(materials.router)
+app.include_router(billing.router)
+app.include_router(voice.router)
 
 
 @app.get("/health")

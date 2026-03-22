@@ -12,6 +12,7 @@ import { Progress } from './pages/Progress';
 import { Materials } from './pages/Materials';
 import { Hype } from './pages/Hype';
 import { Debrief } from './pages/Debrief';
+import { Pricing } from './pages/Pricing';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ export default function App() {
                 <Route path="/materials" element={<Materials />} />
                 <Route path="/hype" element={<Hype />} />
                 <Route path="/debrief" element={<Debrief />} />
+                <Route path="/billing" element={<Pricing />} />
               </Route>
             </Routes>
           </BrowserRouter>

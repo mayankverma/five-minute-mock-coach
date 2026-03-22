@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     ENV: Literal["local", "staging", "production"] = "local"
     DEBUG: bool = True
+    PORT: int = 8000
 
     # Supabase
     SUPABASE_URL: str = ""
@@ -31,6 +32,15 @@ class Settings(BaseSettings):
 
     # App
     FRONTEND_URL: str = "http://localhost:5173"
+    ALLOWED_ORIGINS: str = ""
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Return list of allowed CORS origins."""
+        origins = [self.FRONTEND_URL]
+        if self.ALLOWED_ORIGINS:
+            origins.extend(o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip())
+        return origins
 
 
 settings = Settings()
