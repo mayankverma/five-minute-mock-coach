@@ -22,8 +22,12 @@ export function Landing() {
     setSubmitting(true);
     try {
       if (mode === 'signup') {
-        await signUp(email, password);
-        setSuccess('Check your email for a confirmation link.');
+        const autoConfirmed = await signUp(email, password);
+        if (!autoConfirmed) {
+          setSuccess('Check your email for a confirmation link.');
+        }
+        // If autoConfirmed, the AuthContext will detect the session
+        // and the Navigate redirect at the top will kick in
       } else {
         await signInWithEmail(email, password);
       }
