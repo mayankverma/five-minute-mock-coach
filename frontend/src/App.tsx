@@ -5,6 +5,7 @@ import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Landing } from './pages/Landing';
+import { Onboarding } from './pages/Onboarding';
 import { Dashboard } from './pages/Dashboard';
 import { Storybank } from './pages/Storybank';
 import { Practice } from './pages/Practice';
@@ -27,6 +28,9 @@ export default function App() {
             <Routes>
               {/* Public */}
               <Route path="/login" element={<Landing />} />
+
+              {/* Protected — onboarding (no sidebar/topbar) */}
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
               {/* Protected app */}
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

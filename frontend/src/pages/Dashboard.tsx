@@ -510,6 +510,17 @@ function JobDashboard() {
 
 export function Dashboard() {
   const { isJobWorkspace } = useWorkspace();
+  const { hasProfile, isLoading } = useDashboard();
+
+  if (isLoading) {
+    return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
+  }
+
+  // New user — redirect to onboarding
+  if (!hasProfile) {
+    window.location.href = '/onboarding';
+    return null;
+  }
 
   if (isJobWorkspace) {
     return <JobDashboard />;
