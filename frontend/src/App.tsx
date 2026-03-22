@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { AppLayout } from './components/layout/AppLayout';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Landing } from './pages/Landing';
 import { Dashboard } from './pages/Dashboard';
 import { Storybank } from './pages/Storybank';
 import { Practice } from './pages/Practice';
@@ -23,7 +25,11 @@ export default function App() {
         <WorkspaceProvider>
           <BrowserRouter>
             <Routes>
-              <Route element={<AppLayout />}>
+              {/* Public */}
+              <Route path="/login" element={<Landing />} />
+
+              {/* Protected app */}
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/stories" element={<Storybank />} />
                 <Route path="/practice" element={<Practice />} />

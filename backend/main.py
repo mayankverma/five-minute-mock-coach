@@ -1,6 +1,9 @@
 """Five Minute Mock Coach — FastAPI application."""
-from fastapi import FastAPI
+from pathlib import Path
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from backend.config import settings
 from backend.api.routers import auth, questions, practice, stories, workspaces, prep, progress, materials, billing, voice
 
@@ -14,7 +17,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
+# API Routers
 app.include_router(auth.router)
 app.include_router(questions.router)
 app.include_router(practice.router)
@@ -30,3 +33,22 @@ app.include_router(voice.router)
 @app.get("/health")
 async def health():
     return {"status": "ok", "env": settings.ENV}
+
+
+# Serve frontend static files in production
+FRONTEND_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="static-assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(request: Request, full_path: str):
+        """Serve the SPA index.html for all non-API routes."""
+        # Don't intercept API routes
+        if full_path.startswith("api/") or full_path == "health":
+            return
+        # Serve static files if they exist
+        file_path = FRONTEND_DIR / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        # Fall back to index.html for SPA routing
+        return FileResponse(FRONTEND_DIR / "index.html")
