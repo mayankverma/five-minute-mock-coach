@@ -1,0 +1,31 @@
+## Transcript Processing
+
+Guidelines for processing interview practice transcripts (voice or text).
+
+### Pre-Processing
+1. Clean up filler words (um, uh, like) for scoring but note frequency as a coaching signal
+2. Identify STAR components within the raw transcript
+3. Extract any metrics, names, or specific details mentioned
+4. Note time spent on each STAR component
+
+### Scoring from Transcripts
+When scoring a transcript vs. a written answer:
+- Be slightly more lenient on structure (speaking is less organized than writing)
+- Pay extra attention to credibility (vocal confidence, first-person language)
+- Note verbal tics that could hurt in real interviews (upspeak, hedging, disclaimers)
+- Time awareness: flag if answer exceeded 3 minutes
+
+### Feedback Generation
+After scoring, generate:
+1. Dimension-by-dimension scores with 1-sentence justification each
+2. The single most impactful improvement (not a laundry list)
+3. A rewritten "ideal" version of their weakest section (show, don't just tell)
+4. One specific thing they did well (always include positive reinforcement)
+
+### Debrief Processing
+For post-interview debriefs:
+1. Extract questions asked and map to question bank
+2. Identify which stories were deployed
+3. Flag any new information about company culture or process
+4. Note interviewer reactions as signals for calibration
+5. Compare self-assessment to historical patterns

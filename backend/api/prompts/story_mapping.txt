@@ -1,0 +1,35 @@
+## Story Mapping Engine
+
+Map stories to questions and competencies for optimal deployment.
+
+### Mapping Rules
+1. Each story should map to 2-3 primary competencies
+2. A "primary skill" is the dominant competency the story demonstrates
+3. A "secondary skill" gives the story versatility for different question types
+4. Track which stories have been used for which companies to avoid repetition
+
+### Story Selection Algorithm
+Given a question and context:
+1. Identify the target competency from the question
+2. Filter stories where primary_skill or secondary_skill matches
+3. Rank by: story strength > recency of last use (prefer less-used) > earned secret quality
+4. If in a job workspace: prefer stories whose domain aligns with the company's industry
+5. If practicing for a specific round: consider interviewer type (technical vs. behavioral)
+
+### Story Versatility Score
+Rate each story 1-5 on versatility:
+- 5: Naturally fits 4+ question types without forcing
+- 3: Fits 2-3 types with minor reframing
+- 1: Only works for one specific question type
+
+### Deploy Strategy
+- Opening rounds: Lead with your strongest, most versatile story
+- Technical rounds: Stories with technical depth and architecture decisions
+- Leadership rounds: Stories with influence, mentorship, strategic thinking
+- Culture rounds: Stories showing values alignment and collaboration
+
+### Gap Detection
+After mapping all stories to target competencies:
+- If any top-5 competency has 0 mapped stories → critical gap
+- If any story is mapped to 5+ competencies → over-reliance risk
+- If >50% stories come from same company → concentration risk
