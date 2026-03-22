@@ -1,0 +1,42 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { AppLayout } from './components/layout/AppLayout';
+import { Dashboard } from './pages/Dashboard';
+import { Storybank } from './pages/Storybank';
+import { Practice } from './pages/Practice';
+import { MockInterview } from './pages/MockInterview';
+import { InterviewPrep } from './pages/InterviewPrep';
+import { Progress } from './pages/Progress';
+import { Materials } from './pages/Materials';
+import { Hype } from './pages/Hype';
+import { Debrief } from './pages/Debrief';
+
+const queryClient = new QueryClient();
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <WorkspaceProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/stories" element={<Storybank />} />
+                <Route path="/practice" element={<Practice />} />
+                <Route path="/mock" element={<MockInterview />} />
+                <Route path="/prep" element={<InterviewPrep />} />
+                <Route path="/progress" element={<Progress />} />
+                <Route path="/materials" element={<Materials />} />
+                <Route path="/hype" element={<Hype />} />
+                <Route path="/debrief" element={<Debrief />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </WorkspaceProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}

@@ -1,0 +1,87 @@
+:root {
+  --ff-display: 'Instrument Serif', Georgia, serif;
+  --ff-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  --primary: #4a9e8f;
+  --primary-dark: #3b8275;
+  --primary-light: #e4f2ef;
+  --primary-lighter: #f2f9f7;
+
+  --bg: #f7f6f3;
+  --bg-alt: #eeedea;
+  --card: #ffffff;
+  --border: #e4e1db;
+  --border-light: #eeedea;
+
+  --text: #1a1a1a;
+  --text-secondary: #555552;
+  --text-muted: #8c8c88;
+  --text-inverse: #ffffff;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Score dimension colors */
+  --c-substance: #4a9e8f;
+  --c-structure: #d4864a;
+  --c-relevance: #7668d6;
+  --c-credibility: #cc4e62;
+  --c-differentiation: #c99a2e;
+
+  /* Kanban stage colors */
+  --k-researched: #7668d6;
+  --k-applied: #d4864a;
+  --k-interviewing: #4a9e8f;
+  --k-offer: #2eaa4a;
+
+  /* Layout */
+  --topbar-h: 56px;
+  --sidebar-w: 230px;
+  --sidebar-collapsed-w: 56px;
+}
+
+/* Base reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  font-family: var(--ff-body);
+  color: var(--text);
+  background: var(--bg);
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+#root {
+  height: 100%;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-w: var(--sidebar-collapsed-w);
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 0px;
+    --topbar-h: 50px;
+  }
+}
