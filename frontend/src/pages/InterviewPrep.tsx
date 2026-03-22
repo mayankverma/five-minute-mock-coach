@@ -1,3 +1,4 @@
+import React from 'react';
 import './pages.css';
 import { usePrep, type PrepTab } from '../hooks/usePrep';
 
@@ -282,7 +283,7 @@ export function InterviewPrep() {
     );
   }
 
-  const tabContent: Record<PrepTab, JSX.Element> = {
+  const tabContent: Record<PrepTab, React.ReactNode> = {
     research: <ResearchTab />,
     decode: <DecodeTab />,
     brief: <BriefTab />,

@@ -6,7 +6,6 @@ import { useState } from 'react';
 export function MockInterview() {
   const {
     formats,
-    selectedFormat,
     selectFormat,
     activeFormat,
     sessionActive,

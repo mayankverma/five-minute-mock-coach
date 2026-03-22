@@ -47,7 +47,7 @@ const MOCK_SCORECARD: ScorecardData = {
 };
 
 export function usePractice() {
-  const [currentStage, setCurrentStage] = useState(1);
+  const [currentStage, _setCurrentStage] = useState(1);
   const [currentQuestion, setCurrentQuestion] = useState<CurrentQuestion>(DEFAULT_QUESTION);
   const [isRecording, setIsRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);

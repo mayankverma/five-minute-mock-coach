@@ -53,23 +53,6 @@ function IconTarget() {
   );
 }
 
-function IconBolt() {
-  return (
-    <svg className="icon" viewBox="0 0 18 18">
-      <polygon points="10 1 3 10 9 10 8 17 15 8 9 8" />
-    </svg>
-  );
-}
-
-function IconPlay() {
-  return (
-    <svg className="icon" viewBox="0 0 18 18">
-      <circle cx="9" cy="9" r="7" />
-      <polygon points="7.5 5.5 13 9 7.5 12.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 function IconClipboard() {
   return (
     <svg className="icon" viewBox="0 0 18 18">
