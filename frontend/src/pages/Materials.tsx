@@ -155,43 +155,34 @@ export function Materials() {
             <ResumeUpload onUpload={(file) => console.log('Resume uploaded:', file.name)} />
           </div>
           <div className="card-body">
-            {/* Score section */}
-            <div className="material-score">
-              <div className="material-score-circle">{resume.grade}</div>
-              <div className="material-dims">
-                <div className="material-dim">
-                  <strong>ATS:</strong> {resume.dimensions.ats}
-                </div>
-                <div className="material-dim">
-                  <strong>Recruiter Scan:</strong> {resume.dimensions.recruiterScan}
-                </div>
-                <div className="material-dim">
-                  <strong>Bullet Quality:</strong> {resume.dimensions.bulletQuality}
-                </div>
-                <div className="material-dim">
-                  <strong>Seniority:</strong> {resume.dimensions.seniority}
-                </div>
-                <div className="material-dim">
-                  <strong>Keywords:</strong> {resume.dimensions.keywords}
-                </div>
+            {!resume ? (
+              <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>No resume analyzed yet</div>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Upload your resume to get an ATS compatibility audit, bullet quality analysis, and optimization recommendations.</p>
               </div>
-            </div>
-
-            {/* Top Fixes */}
-            <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Top Fixes</h3>
-            <ul className="prep-list">
-              {resume.topFixes.map((fix, i) => (
-                <li key={i}>
-                  <span
-                    className={`tag tag-${fix.severity}`}
-                    style={{ fontSize: 10 }}
-                  >
-                    {severityLabel(fix.severity)}
-                  </span>
-                  {fix.text}
-                </li>
-              ))}
-            </ul>
+            ) : (
+              <>
+                <div className="material-score">
+                  <div className="material-score-circle">{resume.grade}</div>
+                  <div className="material-dims">
+                    <div className="material-dim"><strong>ATS:</strong> {resume.dimensions.ats}</div>
+                    <div className="material-dim"><strong>Recruiter Scan:</strong> {resume.dimensions.recruiterScan}</div>
+                    <div className="material-dim"><strong>Bullet Quality:</strong> {resume.dimensions.bulletQuality}</div>
+                    <div className="material-dim"><strong>Seniority:</strong> {resume.dimensions.seniority}</div>
+                    <div className="material-dim"><strong>Keywords:</strong> {resume.dimensions.keywords}</div>
+                  </div>
+                </div>
+                <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Top Fixes</h3>
+                <ul className="prep-list">
+                  {resume.topFixes.map((fix, i) => (
+                    <li key={i}>
+                      <span className={`tag tag-${fix.severity}`} style={{ fontSize: 10 }}>{severityLabel(fix.severity)}</span>
+                      {fix.text}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -223,39 +214,20 @@ export function Materials() {
             <span className="card-title">Positioning Statement</span>
           </div>
           <div className="card-body prep-section">
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              10-Second Hook
-            </div>
-            <p
-              style={{
-                fontFamily: 'var(--ff-display)',
-                fontSize: 18,
-                lineHeight: 1.5,
-                marginBottom: 16,
-              }}
-            >
-              {pitch.hook10s}
-            </p>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                marginBottom: 4,
-              }}
-            >
-              Full Statement (30s)
-            </div>
-            <p>{pitch.fullStatement}</p>
+            {!pitch ? (
+              <div style={{ textAlign: 'center', padding: '32px 24px' }}>
+                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>No positioning statement yet</div>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>Generate your core "tell me about yourself" answer — a 10-second hook and 30-second full statement.</p>
+                <button className="btn btn-primary" style={{ marginTop: 12 }}>Generate Pitch</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, marginBottom: 4 }}>10-Second Hook</div>
+                <p style={{ fontFamily: 'var(--ff-display)', fontSize: 18, lineHeight: 1.5, marginBottom: 16 }}>{pitch.hook10s}</p>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' as const, marginBottom: 4 }}>Full Statement (30s)</div>
+                <p>{pitch.fullStatement}</p>
+              </>
+            )}
           </div>
         </div>
       )}

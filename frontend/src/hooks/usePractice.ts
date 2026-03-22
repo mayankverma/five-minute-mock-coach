@@ -35,16 +35,7 @@ const DEFAULT_QUESTION: CurrentQuestion = {
   totalQuestions: 3,
 };
 
-const MOCK_SCORECARD: ScorecardData = {
-  substance: 4.3,
-  structure: 4.0,
-  relevance: 4.5,
-  credibility: 4.2,
-  differentiation: 3.5,
-  hireSignal: 'Strong Hire',
-  feedback:
-    'Excellent use of specific metrics and a clear STAR structure. The story demonstrated genuine leadership under pressure. Consider adding more about the long-term impact of the team rebuild to strengthen differentiation.',
-};
+// Scorecard will be populated by the scoring API after answer submission
 
 export function usePractice() {
   const [currentStage, _setCurrentStage] = useState(1);
@@ -92,14 +83,20 @@ export function usePractice() {
     });
   }, []);
 
-  const submitAnswer = useCallback(() => {
+  const submitAnswer = useCallback(async () => {
     setIsRecording(false);
     setIsLoading(true);
-    // Simulate API call delay
-    setTimeout(() => {
-      setScorecard(MOCK_SCORECARD);
+    try {
+      // TODO: Send audio/transcript to /api/practice/{session_id}/submit for scoring
+      // For now, show a placeholder message
+      setScorecard({
+        substance: 0, structure: 0, relevance: 0, credibility: 0, differentiation: 0,
+        hireSignal: 'Pending',
+        feedback: 'Scoring will be available once the practice API is connected to the AI coach service.',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1200);
+    }
   }, []);
 
   return {

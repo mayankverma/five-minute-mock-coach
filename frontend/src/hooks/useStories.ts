@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../lib/api';
 
 export interface Story {
   id: string;
@@ -16,69 +18,66 @@ export interface Gap {
   description: string;
 }
 
-const MOCK_STORIES: Story[] = [
-  {
-    id: 'S001',
-    title: 'Scaling Eng Org 8 to 27 Post-Layoffs',
-    primarySkill: 'Team Building',
-    secondarySkill: 'Change Mgmt',
-    earnedSecret: 'Hiring during crisis builds loyalty',
-    strength: 4,
-    uses: 3,
-    status: 'improve',
-  },
-  {
-    id: 'S002',
-    title: 'Voice AI Platform — 1M+ Calls/Month',
-    primarySkill: 'Technical Vision',
-    secondarySkill: 'Strategic Thinking',
-    earnedSecret: 'Build vs buy flips at scale',
-    strength: 5,
-    uses: 5,
-    status: 'view',
-  },
-  {
-    id: 'S003',
-    title: '$200M Marketplace Platform',
-    primarySkill: 'Business Impact',
-    secondarySkill: 'Cross-functional',
-    earnedSecret: 'Finance data as competitive moat',
-    strength: 4,
-    uses: 2,
-    status: 'improve',
-  },
-  {
-    id: 'S004',
-    title: 'LLM Solutions Saving $10M+',
-    primarySkill: 'Innovation',
-    secondarySkill: 'Cost Optimization',
-    earnedSecret: 'LLM ROI requires infra, not models',
-    strength: 4,
-    uses: 1,
-    status: 'improve',
-  },
-];
-
-const MOCK_GAPS: Gap[] = [
-  { severity: 'missing', description: 'Failure / learning story (critical for Director)' },
-  { severity: 'missing', description: 'Conflict resolution story' },
-  { severity: 'weak', description: 'Stakeholder management (S003 partially covers)' },
-];
-
-const NARRATIVE_IDENTITY =
-  'Builder who scales through ambiguity. Takes broken/nascent systems and builds them into platforms. Each story shows progressively larger scope \u2014 from infra ($5M) to org (27 engineers) to business ($200M) to company strategy (voice AI).';
+async function fetchStories(): Promise<Story[]> {
+  try {
+    const { data } = await api.get('/api/stories');
+    return (data || []).map((s: any) => ({
+      id: s.id?.substring(0, 8) || s.id,
+      title: s.title,
+      primarySkill: s.primary_skill || '',
+      secondarySkill: s.secondary_skill || '',
+      earnedSecret: s.earned_secret || '',
+      strength: s.strength || 3,
+      uses: s.use_count || 0,
+      status: (s.strength || 0) >= 5 ? 'view' as const : 'improve' as const,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export function useStories() {
-  const [stories, setStories] = useState<Story[]>(MOCK_STORIES);
-  const [isLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  const gaps: Gap[] = MOCK_GAPS;
-  const narrativeIdentity: string = NARRATIVE_IDENTITY;
+  const storiesQuery = useQuery({
+    queryKey: ['stories', user?.id],
+    queryFn: fetchStories,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user && !authLoading,
+  });
 
-  const addStory = (_story: Partial<Story>) => {
-    // No-op for now — will integrate with backend later
-    setStories((prev) => prev);
+  const stories = storiesQuery.data ?? [];
+
+  // Gaps are empty until we have stories — will be computed by AI later
+  const gaps: Gap[] = [];
+  const narrativeIdentity = '';
+
+  const addMutation = useMutation({
+    mutationFn: async (story: Partial<Story>) => {
+      const { data } = await api.post('/api/stories', {
+        title: story.title,
+        primary_skill: story.primarySkill,
+        secondary_skill: story.secondarySkill,
+        earned_secret: story.earnedSecret,
+        strength: story.strength,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  const addStory = (story: Partial<Story>) => {
+    addMutation.mutate(story);
   };
 
-  return { stories, gaps, narrativeIdentity, addStory, isLoading };
+  return {
+    stories,
+    gaps,
+    narrativeIdentity,
+    addStory,
+    isLoading: authLoading || storiesQuery.isLoading,
+  };
 }

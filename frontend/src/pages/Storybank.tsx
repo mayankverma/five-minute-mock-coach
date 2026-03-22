@@ -154,96 +154,89 @@ export function Storybank() {
         />
       )}
 
-      {/* ── Story table ── */}
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="card-body" style={{ padding: 0 }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Title</th>
-                <th>Primary Skill</th>
-                <th>Secondary Skill</th>
-                <th>Earned Secret</th>
-                <th>Strength</th>
-                <th>Uses</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {stories.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <span className="story-id">{s.id}</span>
-                  </td>
-                  <td>
-                    <span className="story-title">{s.title}</span>
-                  </td>
-                  <td>{s.primarySkill}</td>
-                  <td>{s.secondarySkill}</td>
-                  <td>{s.earnedSecret}</td>
-                  <td>
-                    <StrengthBar value={s.strength} />
-                  </td>
-                  <td>{s.uses}</td>
-                  <td>
-                    <button className="btn btn-outline btn-sm">
-                      {s.status === 'view' ? 'View' : 'Improve'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── Two-column grid: Gap Analysis + Narrative Identity ── */}
-      <div className="card-grid card-grid-2">
-        {/* Gap Analysis */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">
-              <SearchIcon /> Gap Analysis
-            </span>
+      {/* ── Story table or empty state ── */}
+      {stories.length === 0 ? (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>
+              <BookIcon />
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>No stories yet</div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, maxWidth: 400, margin: '0 auto 16px' }}>
+              Stories are the foundation of great interview answers. Click "Add Story" to build your first STAR story from your experience.
+            </p>
+            <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+              <PlusIcon /> Add Your First Story
+            </button>
           </div>
-          <div className="card-body">
-            <div className="prep-list">
-              {gaps.map((gap, i) => (
-                <li key={i}>
-                  <span
-                    className={`tag ${gap.severity === 'missing' ? 'tag-red' : 'tag-amber'}`}
-                    style={{ fontSize: 10 }}
-                  >
-                    {gap.severity === 'missing' ? 'Missing' : 'Weak'}
-                  </span>{' '}
-                  {gap.description}
-                </li>
-              ))}
+        </div>
+      ) : (
+        <>
+          <div className="card" style={{ marginBottom: 14 }}>
+            <div className="card-body" style={{ padding: 0 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Primary Skill</th>
+                    <th>Secondary Skill</th>
+                    <th>Earned Secret</th>
+                    <th>Strength</th>
+                    <th>Uses</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stories.map((s) => (
+                    <tr key={s.id}>
+                      <td><span className="story-id">{s.id}</span></td>
+                      <td><span className="story-title">{s.title}</span></td>
+                      <td>{s.primarySkill}</td>
+                      <td>{s.secondarySkill}</td>
+                      <td>{s.earnedSecret}</td>
+                      <td><StrengthBar value={s.strength} /></td>
+                      <td>{s.uses}</td>
+                      <td><button className="btn btn-outline btn-sm">{s.status === 'view' ? 'View' : 'Improve'}</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
 
-        {/* Narrative Identity */}
-        <div className="card">
-          <div className="card-header">
-            <span className="card-title">
-              <CompassIcon /> Narrative Identity
-            </span>
-          </div>
-          <div className="card-body">
-            <p
-              style={{
-                fontSize: 13,
-                color: 'var(--text-secondary)',
-                lineHeight: 1.7,
-              }}
-            >
-              <strong>Core themes:</strong> {narrativeIdentity}
-            </p>
-          </div>
-        </div>
-      </div>
+          {/* ── Gap Analysis + Narrative Identity (only show when stories exist) ── */}
+          {gaps.length > 0 && (
+            <div className="card-grid card-grid-2">
+              <div className="card">
+                <div className="card-header"><span className="card-title"><SearchIcon /> Gap Analysis</span></div>
+                <div className="card-body">
+                  <div className="prep-list">
+                    {gaps.map((gap, i) => (
+                      <li key={i}>
+                        <span className={`tag ${gap.severity === 'missing' ? 'tag-red' : 'tag-amber'}`} style={{ fontSize: 10 }}>
+                          {gap.severity === 'missing' ? 'Missing' : 'Weak'}
+                        </span>{' '}
+                        {gap.description}
+                      </li>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {narrativeIdentity && (
+                <div className="card">
+                  <div className="card-header"><span className="card-title"><CompassIcon /> Narrative Identity</span></div>
+                  <div className="card-body">
+                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+                      <strong>Core themes:</strong> {narrativeIdentity}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

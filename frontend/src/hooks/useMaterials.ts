@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../lib/api';
 
 export type MaterialTab = 'resume' | 'linkedin' | 'pitch' | 'outreach' | 'salary';
 
@@ -24,56 +27,72 @@ export interface PitchData {
   fullStatement: string;
 }
 
-const MOCK_RESUME: ResumeData = {
-  grade: 'B+',
-  dimensions: {
-    ats: 'Ready',
-    recruiterScan: 'Strong',
-    bulletQuality: 'Moderate',
-    seniority: 'Aligned',
-    keywords: 'Moderate',
-  },
-  topFixes: [
-    {
-      severity: 'red',
-      text: 'DoorDash bullets lack quantification \u2014 add call volume, cost savings, timeline',
-    },
-    {
-      severity: 'amber',
-      text: 'Missing "Director-level" language \u2014 add strategy, portfolio, executive stakeholders',
-    },
-    {
-      severity: 'neutral',
-      text: 'Add a 2-line summary that anchors your positioning statement',
-    },
-  ],
-};
+async function fetchMaterials() {
+  try {
+    const { data } = await api.get('/api/materials/resume');
+    return data;
+  } catch {
+    return null;
+  }
+}
 
-const MOCK_PITCH: PitchData = {
-  hook10s:
-    '\u201CI build AI platforms that replace entire vendor ecosystems \u2014 my latest handles a million support calls a month at half the cost.\u201D',
-  fullStatement:
-    '\u201CI\u2019m an engineering leader who specializes in taking nascent AI capabilities and turning them into production platforms at scale. At DoorDash, I built a voice AI system from scratch that now handles over a million customer support calls monthly \u2014 50% cheaper than the vendor it replaced, with 25% fewer escalations. Before that, I spent 5 years at Lyft scaling a marketplace engineering org from 8 to 27 engineers across 4 countries, owning a $200M revenue platform. I\u2019m looking for a Director role where I can apply that same build-and-scale pattern to a bigger canvas.\u201D',
-};
+async function fetchPitch() {
+  try {
+    const { data } = await api.get('/api/materials/pitch');
+    return data;
+  } catch {
+    return null;
+  }
+}
 
 export function useMaterials(initialTab: MaterialTab = 'resume') {
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<MaterialTab>(initialTab);
-  const [isLoading] = useState(false);
 
-  const resume: ResumeData = MOCK_RESUME;
-  const linkedin: null = null;
-  const pitch: PitchData = MOCK_PITCH;
-  const outreach: null = null;
-  const salary: null = null;
+  const resumeQuery = useQuery({
+    queryKey: ['resume', user?.id],
+    queryFn: fetchMaterials,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user && !authLoading,
+  });
+
+  const pitchQuery = useQuery({
+    queryKey: ['pitch', user?.id],
+    queryFn: fetchPitch,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!user && !authLoading,
+  });
+
+  const rawResume = resumeQuery.data;
+  const resume: ResumeData | null = rawResume ? {
+    grade: rawResume.overall || 'N/A',
+    dimensions: {
+      ats: rawResume.ats_compatibility || 'Not assessed',
+      recruiterScan: rawResume.recruiter_scan || 'Not assessed',
+      bulletQuality: rawResume.bullet_quality || 'Not assessed',
+      seniority: rawResume.seniority_calibration || 'Not assessed',
+      keywords: rawResume.keyword_coverage || 'Not assessed',
+    },
+    topFixes: (rawResume.top_fixes || []).map((f: any) => ({
+      severity: f.severity || 'neutral',
+      text: f.text || f,
+    })),
+  } : null;
+
+  const rawPitch = pitchQuery.data;
+  const pitch: PitchData | null = rawPitch?.core_statement ? {
+    hook10s: rawPitch.hook_10s || '',
+    fullStatement: rawPitch.core_statement || '',
+  } : null;
 
   return {
     activeTab,
     setActiveTab,
     resume,
-    linkedin,
+    linkedin: null,
     pitch,
-    outreach,
-    salary,
-    isLoading,
+    outreach: null,
+    salary: null,
+    isLoading: authLoading || resumeQuery.isLoading,
   };
 }

@@ -57,6 +57,19 @@ const tabs: { id: PrepTab; label: string }[] = [
 function ResearchTab() {
   const { companyOverview, fitAssessment } = usePrep();
 
+  if (!companyOverview && !fitAssessment) {
+    return (
+      <div className="card">
+        <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>No research yet</div>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 400, margin: '0 auto' }}>
+            Select a job workspace and run company research to see culture signals, interview process, and fit assessment.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="card-grid card-grid-2">
       {/* Company Overview */}
@@ -65,16 +78,16 @@ function ResearchTab() {
           <span className="card-title">Company Overview</span>
         </div>
         <div className="card-body prep-section">
-          <p>{companyOverview.description}</p>
+          <p>{companyOverview?.description || 'Not available'}</p>
           <h3>Culture Signals</h3>
           <ul className="prep-list">
-            {companyOverview.cultureSignals.map((signal, i) => (
+            {(companyOverview?.cultureSignals || []).map((signal, i) => (
               <li key={i}>{signal}</li>
             ))}
           </ul>
           <h3>Interview Process</h3>
           <ul className="prep-list">
-            {companyOverview.interviewProcess.map((step, i) => (
+            {(companyOverview?.interviewProcess || []).map((step, i) => (
               <li key={i}>{step}</li>
             ))}
           </ul>
@@ -89,15 +102,15 @@ function ResearchTab() {
         <div className="card-body">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <span className="tag tag-green" style={{ fontSize: 13, padding: '6px 14px' }}>
-              {fitAssessment.verdict}
+              {fitAssessment?.verdict || 'Not assessed'}
             </span>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {fitAssessment.confidence}
+              {fitAssessment?.confidence || ''}
             </span>
           </div>
           <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Fit Signals</h3>
           <ul className="prep-list">
-            {fitAssessment.fitSignals.map((signal, i) => (
+            {(fitAssessment?.fitSignals || []).map((signal, i) => (
               <li key={i}>{signal}</li>
             ))}
           </ul>
@@ -105,7 +118,7 @@ function ResearchTab() {
             Structural Gaps
           </h3>
           <ul className="prep-list">
-            {fitAssessment.structuralGaps.map((gap, i) => (
+            {(fitAssessment?.structuralGaps || []).map((gap, i) => (
               <li key={i}>
                 <span
                   className={`tag ${gap.severity === 'Frameable' ? 'tag-amber' : 'tag-neutral'}`}
@@ -134,7 +147,7 @@ function DecodeTab() {
       <div className="card-body prep-section">
         <h3>Top 5 Competencies (Priority Order)</h3>
         <ul className="prep-list">
-          {jdAnalysis.competencies.map((c) => (
+          {(jdAnalysis?.competencies || []).map((c) => (
             <li key={c.rank}>
               <strong>
                 {c.rank}. {c.name}
@@ -145,7 +158,7 @@ function DecodeTab() {
         </ul>
         <h3>Story Coverage</h3>
         <ul className="prep-list">
-          {jdAnalysis.storyCoverage.map((sc, i) => (
+          {(jdAnalysis?.storyCoverage || []).map((sc, i) => (
             <li key={i}>
               <span
                 className={`tag ${sc.status === 'covered' ? 'tag-green' : 'tag-red'}`}
