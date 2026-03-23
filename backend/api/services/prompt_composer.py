@@ -128,7 +128,25 @@ class PromptComposer:
                 + "\n".join(story_lines)
             )
 
-        # 6. Score history summary
+        # 6. Resume context (if available)
+        resume = user_context.get("resume")
+        if resume:
+            resume_parts = []
+            if resume.get("positioning_strengths"):
+                resume_parts.append(f"Positioning strengths: {resume['positioning_strengths']}")
+            if resume.get("career_narrative_gaps"):
+                resume_parts.append(f"Career narrative gaps: {resume['career_narrative_gaps']}")
+            if resume.get("story_seeds"):
+                import json
+                seeds = resume["story_seeds"] if isinstance(resume["story_seeds"], list) else json.loads(resume["story_seeds"])
+                if seeds:
+                    resume_parts.append(f"Story seeds from resume: {json.dumps(seeds)}")
+            if resume_parts:
+                sections.append(
+                    f"\n---\n\n## Resume Analysis\n" + "\n".join(f"- {p}" for p in resume_parts)
+                )
+
+        # 7. Score history summary
         scores = user_context.get("recent_scores", [])
         if scores:
             avg_lines = []

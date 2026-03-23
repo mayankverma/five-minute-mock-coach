@@ -101,6 +101,16 @@ class AICoachService:
         )
         context["coaching_strategy"] = strategy_resp.data
 
+        # Resume analysis (if available)
+        resume_resp = (
+            db.table("resume_analysis")
+            .select("positioning_strengths, story_seeds, career_narrative_gaps")
+            .eq("user_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        context["resume"] = resume_resp.data if resume_resp.data else None
+
         # Workspace (if specified)
         if workspace_id:
             ws_resp = (
