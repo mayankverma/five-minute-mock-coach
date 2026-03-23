@@ -63,6 +63,21 @@ class AICoachService:
         )
         return response.choices[0].message.content
 
+    async def coach_stream(self, command: str, user_context: dict, messages: list[dict]):
+        """Stream OpenAI response tokens. Accepts full conversation history."""
+        system_prompt = PromptComposer.compose(command, user_context)
+        client = get_openai()
+        response = await client.chat.completions.create(
+            model=settings.OPENAI_MODEL,
+            messages=[{"role": "system", "content": system_prompt}] + messages,
+            temperature=0.7,
+            max_tokens=2000,
+            stream=True,
+        )
+        async for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+
     async def build_user_context(self, user_id: str, workspace_id: Optional[str] = None) -> dict:
         """Fetch user's profile, stories, scores, and optionally workspace data from Supabase."""
         db = get_supabase()
