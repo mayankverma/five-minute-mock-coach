@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useStoryChat } from '../hooks/useStoryChat';
 import './story-builder.css';
 
 /* ── Types ── */
@@ -43,19 +44,19 @@ const EMPTY: StoryDraft = {
   deployFor: '',
 };
 
-/* ── Dummy opening prompts (prototype only) ── */
+/* ── Opening messages ── */
 
-const OPENING_PROMPTS: ChatMessage[] = [
+const OPENING: ChatMessage[] = [
   {
     role: 'coach',
     text: "Let's surface a great interview story. Don't worry about structure yet — I'll help shape it.\n\nThink about a moment at work where you were at your best. What comes to mind?",
   },
 ];
 
-const EXISTING_STORY_PROMPTS = (title: string): ChatMessage[] => [
+const existingOpening = (title: string): ChatMessage[] => [
   {
     role: 'coach',
-    text: `I've loaded your story "${title}". I can see the STAR details on the right.\n\nWould you like to:\n1. **Strengthen** a specific section (Situation, Action, etc.)\n2. **Extract an earned secret** — the unique insight only you learned\n3. **Practice telling** this story in 90 seconds`,
+    text: `I've loaded your story "${title}". I can see the details on the right.\n\nWould you like to strengthen a specific section, extract a deeper earned secret, or practice telling this story in 90 seconds?`,
   },
 ];
 
@@ -110,16 +111,16 @@ function CardIcon() {
 
 export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
+  const { messages, isStreaming, storyExtract, sendMessage } = useStoryChat(
+    isExisting ? existingOpening(initial!.title!) : OPENING,
+  );
 
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    isExisting ? EXISTING_STORY_PROMPTS(initial!.title!) : OPENING_PROMPTS,
-  );
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [cardExpanded, setCardExpanded] = useState(isExisting);
   const [draft, setDraft] = useState<StoryDraft>({ ...EMPTY, ...initial });
-  const [recentlyFilled, setRecentlyFilled] = useState<Set<string>>(new Set());
+  const [justExtracted, setJustExtracted] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -127,6 +128,16 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Populate draft when story extraction arrives
+  useEffect(() => {
+    if (storyExtract) {
+      setDraft(prev => ({ ...prev, ...storyExtract }));
+      setCardExpanded(true);
+      setJustExtracted(true);
+      setTimeout(() => setJustExtracted(false), 2500);
+    }
+  }, [storyExtract]);
 
   const updateDraft = (field: keyof StoryDraft, value: string | number) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -143,59 +154,10 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
   }).length;
   const progressPct = Math.round((filledCount / fieldKeys.length) * 100);
 
-  /* ── Dummy AI response (prototype only) ── */
-  const simulateCoachReply = (userMsg: string) => {
-    // Simulate extracting story content and filling fields
-    setTimeout(() => {
-      const lower = userMsg.toLowerCase();
-      const newFilled = new Set<string>();
-
-      // Simulate AI extracting title from the conversation
-      if (!draft.title && userMsg.length > 20) {
-        const words = userMsg.split(' ').slice(0, 6).join(' ');
-        updateDraft('title', words.charAt(0).toUpperCase() + words.slice(1));
-        newFilled.add('title');
-      }
-
-      // Simulate AI extracting situation
-      if (!draft.situation && (lower.includes('when') || lower.includes('at my') || lower.includes('was working'))) {
-        updateDraft('situation', userMsg);
-        newFilled.add('situation');
-      }
-
-      if (newFilled.size > 0) {
-        setRecentlyFilled(newFilled);
-        // Auto-expand card when first field is filled
-        if (!cardExpanded) setCardExpanded(true);
-        setTimeout(() => setRecentlyFilled(new Set()), 2000);
-      }
-
-      // Add coach follow-up
-      let reply: string;
-      if (!draft.situation || lower.includes('when') || lower.includes('was working')) {
-        reply =
-          "That's a compelling situation. I can already see the story forming.\n\nWhat was your specific responsibility? What were you expected to deliver or solve?";
-      } else if (!draft.action) {
-        reply =
-          "Good — now for the most important part. Walk me through exactly what *you* did. Not the team, not the process — your specific actions and decisions.";
-      } else if (!draft.result) {
-        reply =
-          "Strong actions. What was the outcome? If you can attach a number — revenue saved, time reduced, team size — do it.";
-      } else {
-        reply =
-          "Nice — this story has solid bones. Let me ask you something: what did you believe *before* this experience that turned out to be wrong? That's where your earned secret lives.";
-      }
-
-      setMessages((prev) => [...prev, { role: 'coach', text: reply }]);
-    }, 1200);
-  };
-
   const handleSend = () => {
-    if (!inputText.trim()) return;
-    const userMsg: ChatMessage = { role: 'user', text: inputText.trim() };
-    setMessages((prev) => [...prev, userMsg]);
+    if (!inputText.trim() || isStreaming) return;
+    sendMessage(inputText.trim());
     setInputText('');
-    simulateCoachReply(userMsg.text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -256,6 +218,13 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
                 ))}
               </div>
             ))}
+            {isStreaming && messages[messages.length - 1]?.text === '' && (
+              <div className="sb-typing">
+                <div className="sb-typing-dot" />
+                <div className="sb-typing-dot" />
+                <div className="sb-typing-dot" />
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -269,7 +238,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
                 placeholder="Tell me about your experience..."
                 rows={1}
               />
-              <button className="sb-send-btn" onClick={handleSend}>
+              <button className="sb-send-btn" onClick={handleSend} disabled={isStreaming}>
                 <SendIcon />
               </button>
             </div>
@@ -328,7 +297,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
 
           {/* Scrollable form */}
           <div className="sb-card-body">
-            <div className={`sb-field ${recentlyFilled.has('title') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Title</label>
               <input
                 value={draft.title}
@@ -337,7 +306,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
               />
             </div>
 
-            <div className={`sb-field ${recentlyFilled.has('situation') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Situation</label>
               <textarea
                 value={draft.situation}
@@ -347,7 +316,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
               />
             </div>
 
-            <div className={`sb-field ${recentlyFilled.has('task') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Task</label>
               <textarea
                 value={draft.task}
@@ -357,7 +326,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
               />
             </div>
 
-            <div className={`sb-field ${recentlyFilled.has('action') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Action</label>
               <textarea
                 value={draft.action}
@@ -367,7 +336,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
               />
             </div>
 
-            <div className={`sb-field ${recentlyFilled.has('result') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Result</label>
               <textarea
                 value={draft.result}
@@ -378,7 +347,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
             </div>
 
             <div className="sb-field-row">
-              <div className={`sb-field ${recentlyFilled.has('primarySkill') ? 'just-filled' : ''}`}>
+              <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
                 <label>Primary Skill</label>
                 <input
                   value={draft.primarySkill}
@@ -396,7 +365,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
               </div>
             </div>
 
-            <div className={`sb-field ${recentlyFilled.has('earnedSecret') ? 'just-filled' : ''}`}>
+            <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Earned Secret</label>
               <textarea
                 value={draft.earnedSecret}
