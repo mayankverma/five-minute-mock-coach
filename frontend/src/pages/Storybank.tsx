@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStories } from '../hooks/useStories';
-import { StoryForm } from '../components/StoryForm';
+import { StoryBuilder } from '../components/StoryBuilder';
 import './pages.css';
 
 /* ── Inline SVG icons (from reference HTML symbol defs) ── */
@@ -137,9 +137,9 @@ export function Storybank() {
         </button>
       </div>
 
-      {/* ── Story form (toggled) ── */}
+      {/* ── Story builder (split-pane chat + card) ── */}
       {showForm && (
-        <StoryForm
+        <StoryBuilder
           onSave={(data) => {
             addStory({
               title: data.title,

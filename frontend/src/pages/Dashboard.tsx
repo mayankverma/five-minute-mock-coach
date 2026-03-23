@@ -517,10 +517,11 @@ export function Dashboard() {
   }
 
   // New user — redirect to onboarding
-  if (!hasProfile) {
-    window.location.href = '/onboarding';
-    return null;
-  }
+  // TODO: re-enable after prototype review
+  // if (!hasProfile) {
+  //   window.location.href = '/onboarding';
+  //   return null;
+  // }
 
   if (isJobWorkspace) {
     return <JobDashboard />;
