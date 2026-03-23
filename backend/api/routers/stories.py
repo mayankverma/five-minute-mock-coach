@@ -2,7 +2,9 @@
 
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import json as json_mod
 from backend.api.auth import get_current_user, AuthUser
 from backend.api.db.client import get_supabase
 from backend.api.services.story_coach import StoryCoachService
@@ -45,6 +47,10 @@ class StoryUpdate(BaseModel):
 
 class DiscoverRequest(BaseModel):
     prompt: Optional[str] = None
+
+
+class StoryChatRequest(BaseModel):
+    messages: list[dict]  # [{"role": "user"|"assistant", "content": "..."}]
 
 
 @router.get("")
@@ -216,3 +222,34 @@ async def discover_stories(
     user_context = await coach.build_user_context(user.id)
     result = await story_coach.discover_stories(user_context, req.prompt)
     return result
+
+
+@router.post("/chat")
+async def story_chat(req: StoryChatRequest, user: AuthUser = Depends(get_current_user)):
+    """Stream a story coaching conversation via SSE."""
+    user_context = await coach.build_user_context(user.id)
+
+    async def event_stream():
+        full_response = ""
+
+        async for token in coach.coach_stream("story_chat", user_context, req.messages):
+            full_response += token
+
+            # Don't stream tokens that are part of the extraction block
+            if "|||STORY_EXTRACT" in full_response:
+                continue
+
+            yield f"event: token\ndata: {json_mod.dumps({'text': token})}\n\n"
+
+        # After stream completes, check for extraction
+        if "|||STORY_EXTRACT|||" in full_response and "|||END_EXTRACT|||" in full_response:
+            json_str = full_response.split("|||STORY_EXTRACT|||")[1].split("|||END_EXTRACT|||")[0].strip()
+            try:
+                story_data = json_mod.loads(json_str)
+                yield f"event: story_complete\ndata: {json_mod.dumps(story_data)}\n\n"
+            except json_mod.JSONDecodeError:
+                pass
+
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
