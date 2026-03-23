@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStories } from '../hooks/useStories';
+import { useStories, type Story } from '../hooks/useStories';
 import { StoryBuilder } from '../components/StoryBuilder';
 import './pages.css';
 
@@ -103,6 +103,8 @@ function StrengthBar({ value }: { value: number }) {
 export function Storybank() {
   const { stories, gaps, narrativeIdentity, addStory, isLoading } = useStories();
   const [showForm, setShowForm] = useState(false);
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const showBuilder = showForm || editingStory !== null;
 
   const storyCount = stories.length;
   const gapCount = gaps.length;
@@ -138,13 +140,30 @@ export function Storybank() {
       </div>
 
       {/* ── Story builder (split-pane chat + card) ── */}
-      {showForm && (
+      {showBuilder && (
         <StoryBuilder
+          initial={editingStory ? {
+            title: editingStory.title,
+            situation: editingStory.situation,
+            task: editingStory.task,
+            action: editingStory.action,
+            result: editingStory.result,
+            primarySkill: editingStory.primarySkill,
+            secondarySkill: editingStory.secondarySkill,
+            earnedSecret: editingStory.earnedSecret,
+            strength: editingStory.strength,
+            domain: editingStory.domain,
+            deployFor: editingStory.deployFor,
+          } : undefined}
           onSave={(data) => {
             addStory(data);
             setShowForm(false);
+            setEditingStory(null);
           }}
-          onCancel={() => setShowForm(false)}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingStory(null);
+          }}
         />
       )}
 
@@ -191,7 +210,14 @@ export function Storybank() {
                       <td>{s.earnedSecret}</td>
                       <td><StrengthBar value={s.strength} /></td>
                       <td>{s.uses}</td>
-                      <td><button className="btn btn-outline btn-sm">{s.status === 'view' ? 'View' : 'Improve'}</button></td>
+                      <td>
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => setEditingStory(s)}
+                        >
+                          {s.status === 'view' ? 'View' : 'Improve'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
