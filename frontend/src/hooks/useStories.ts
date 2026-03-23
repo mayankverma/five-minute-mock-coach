@@ -4,12 +4,19 @@ import api from '../lib/api';
 
 export interface Story {
   id: string;
+  fullId: string;
   title: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
   primarySkill: string;
   secondarySkill: string;
   earnedSecret: string;
   strength: number; // 1-5
   uses: number;
+  domain: string;
+  deployFor: string;
   status: 'improve' | 'view';
 }
 
@@ -23,12 +30,19 @@ async function fetchStories(): Promise<Story[]> {
     const { data } = await api.get('/api/stories');
     return (data || []).map((s: any) => ({
       id: s.id?.substring(0, 8) || s.id,
+      fullId: s.id,
       title: s.title,
+      situation: s.situation || '',
+      task: s.task || '',
+      action: s.action || '',
+      result: s.result || '',
       primarySkill: s.primary_skill || '',
       secondarySkill: s.secondary_skill || '',
       earnedSecret: s.earned_secret || '',
       strength: s.strength || 3,
       uses: s.use_count || 0,
+      domain: s.domain || '',
+      deployFor: s.deploy_for || '',
       status: (s.strength || 0) >= 5 ? 'view' as const : 'improve' as const,
     }));
   } catch {
@@ -54,13 +68,19 @@ export function useStories() {
   const narrativeIdentity = '';
 
   const addMutation = useMutation({
-    mutationFn: async (story: Partial<Story>) => {
+    mutationFn: async (story: Record<string, unknown>) => {
       const { data } = await api.post('/api/stories', {
         title: story.title,
+        situation: story.situation,
+        task: story.task,
+        action: story.action,
+        result: story.result,
         primary_skill: story.primarySkill,
         secondary_skill: story.secondarySkill,
         earned_secret: story.earnedSecret,
         strength: story.strength,
+        domain: story.domain,
+        deploy_for: story.deployFor,
       });
       return data;
     },
@@ -69,7 +89,7 @@ export function useStories() {
     },
   });
 
-  const addStory = (story: Partial<Story>) => {
+  const addStory = (story: Record<string, unknown>) => {
     addMutation.mutate(story);
   };
 
