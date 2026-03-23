@@ -20,6 +20,7 @@ COMMAND_MODULES: dict[str, list[str]] = {
     "practice": ["rubrics", "challenge_protocol", "transcript_processing"],
     "story_improve": ["storybank_guide", "differentiation"],
     "story_gaps": ["storybank_guide", "story_mapping"],
+    "story_chat": ["storybank_guide", "differentiation"],
     "story_discover": ["storybank_guide", "differentiation"],
     "narrative": ["storybank_guide", "differentiation", "story_mapping"],
     "decode": ["cross_cutting"],
