@@ -54,13 +54,19 @@ export function useStories() {
   const narrativeIdentity = '';
 
   const addMutation = useMutation({
-    mutationFn: async (story: Partial<Story>) => {
+    mutationFn: async (story: Record<string, unknown>) => {
       const { data } = await api.post('/api/stories', {
         title: story.title,
+        situation: story.situation,
+        task: story.task,
+        action: story.action,
+        result: story.result,
         primary_skill: story.primarySkill,
         secondary_skill: story.secondarySkill,
         earned_secret: story.earnedSecret,
         strength: story.strength,
+        domain: story.domain,
+        deploy_for: story.deployFor,
       });
       return data;
     },
@@ -69,7 +75,7 @@ export function useStories() {
     },
   });
 
-  const addStory = (story: Partial<Story>) => {
+  const addStory = (story: Record<string, unknown>) => {
     addMutation.mutate(story);
   };
 

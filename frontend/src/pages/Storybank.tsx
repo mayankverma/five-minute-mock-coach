@@ -141,13 +141,7 @@ export function Storybank() {
       {showForm && (
         <StoryBuilder
           onSave={(data) => {
-            addStory({
-              title: data.title,
-              primarySkill: data.primarySkill,
-              secondarySkill: data.secondarySkill,
-              earnedSecret: data.earnedSecret,
-              strength: data.strength,
-            });
+            addStory(data);
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}
