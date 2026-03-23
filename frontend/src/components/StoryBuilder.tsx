@@ -29,6 +29,7 @@ interface StoryBuilderProps {
   initial?: Partial<StoryDraft>;
   onSave: (draft: StoryDraft) => void;
   onCancel: () => void;
+  onDelete?: () => void;
 }
 
 const EMPTY: StoryDraft = {
@@ -110,7 +111,7 @@ function CardIcon() {
 
 /* ── Component ── */
 
-export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
+export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
   const { messages, isStreaming, storyExtract, sendMessage } = useStoryChat(
     isExisting ? existingOpening(initial!.title!) : OPENING,
@@ -434,6 +435,17 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
 
           {/* Footer actions */}
           <div className="sb-card-footer">
+            {onDelete && (
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ color: 'var(--text-danger, #c53030)', marginRight: 'auto' }}
+                onClick={() => {
+                  if (window.confirm('Delete this story? This cannot be undone.')) onDelete();
+                }}
+              >
+                Delete
+              </button>
+            )}
             <button className="btn btn-outline btn-sm" onClick={onCancel}>
               Cancel
             </button>

@@ -18,6 +18,7 @@ export interface Story {
   domain: string;
   deployFor: string;
   status: 'improve' | 'view';
+  updatedAt: string;
 }
 
 export interface Gap {
@@ -28,7 +29,8 @@ export interface Gap {
 async function fetchStories(): Promise<Story[]> {
   try {
     const { data } = await api.get('/api/stories');
-    return (data || []).map((s: any) => ({
+    const stories = data?.stories || data || [];
+    return (Array.isArray(stories) ? stories : []).map((s: any) => ({
       id: s.id?.substring(0, 8) || s.id,
       fullId: s.id,
       title: s.title,
@@ -44,6 +46,7 @@ async function fetchStories(): Promise<Story[]> {
       domain: s.domain || '',
       deployFor: s.deploy_for || '',
       status: (s.strength || 0) >= 5 ? 'view' as const : 'improve' as const,
+      updatedAt: s.updated_at || s.created_at || '',
     }));
   } catch {
     return [];
@@ -93,11 +96,25 @@ export function useStories() {
     addMutation.mutate(story);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (storyId: string) => {
+      await api.delete(`/api/stories/${storyId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  const deleteStory = (storyId: string) => {
+    deleteMutation.mutate(storyId);
+  };
+
   return {
     stories,
     gaps,
     narrativeIdentity,
     addStory,
+    deleteStory,
     isLoading: authLoading || storiesQuery.isLoading,
   };
 }

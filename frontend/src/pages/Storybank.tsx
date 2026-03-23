@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useStories, type Story } from '../hooks/useStories';
 import { StoryBuilder } from '../components/StoryBuilder';
 import './pages.css';
@@ -101,9 +101,10 @@ function StrengthBar({ value }: { value: number }) {
 /* ── Page component ── */
 
 export function Storybank() {
-  const { stories, gaps, narrativeIdentity, addStory, isLoading } = useStories();
+  const { stories, gaps, narrativeIdentity, addStory, deleteStory, isLoading } = useStories();
   const [showForm, setShowForm] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const showBuilder = showForm || editingStory !== null;
 
   const storyCount = stories.length;
@@ -117,30 +118,40 @@ export function Storybank() {
 
   return (
     <div>
-      {/* ── Header row ── */}
-      <div
-        className="page-header"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-      >
-        <div>
-          <h1 className="page-title">
-            <BookIcon /> Storybank
-          </h1>
-          <p className="page-subtitle">
-            Your interview-ready STAR stories. {storyCount} stories built, {gapCount} gaps
-            identified.
-          </p>
-        </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowForm((v) => !v)}
+      {/* ── Header row (hidden when builder is open) ── */}
+      {!showBuilder && (
+        <div
+          className="page-header"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
         >
-          <PlusIcon /> Add Story
-        </button>
-      </div>
+          <div>
+            <h1 className="page-title">
+              <BookIcon /> Storybank
+            </h1>
+            <p className="page-subtitle">
+              Your interview-ready STAR stories. {storyCount} stories built, {gapCount} gaps
+              identified.
+            </p>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowForm((v) => !v)}
+          >
+            <PlusIcon /> Add Story
+          </button>
+        </div>
+      )}
 
       {/* ── Story builder (split-pane chat + card) ── */}
       {showBuilder && (
+        <>
+        <button
+          className="btn btn-outline btn-sm"
+          style={{ marginBottom: 10 }}
+          onClick={() => { setShowForm(false); setEditingStory(null); }}
+        >
+          &larr; Back to Stories
+        </button>
         <StoryBuilder
           initial={editingStory ? {
             title: editingStory.title,
@@ -164,11 +175,16 @@ export function Storybank() {
             setShowForm(false);
             setEditingStory(null);
           }}
+          onDelete={editingStory ? () => {
+            deleteStory(editingStory.fullId);
+            setEditingStory(null);
+          } : undefined}
         />
+        </>
       )}
 
-      {/* ── Story table or empty state ── */}
-      {stories.length === 0 ? (
+      {/* ── Story table or empty state (hidden when builder is open) ── */}
+      {showBuilder ? null : stories.length === 0 ? (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>
@@ -190,11 +206,9 @@ export function Storybank() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Updated</th>
                     <th>Title</th>
                     <th>Primary Skill</th>
-                    <th>Secondary Skill</th>
-                    <th>Earned Secret</th>
                     <th>Strength</th>
                     <th>Uses</th>
                     <th></th>
@@ -202,23 +216,73 @@ export function Storybank() {
                 </thead>
                 <tbody>
                   {stories.map((s) => (
-                    <tr key={s.id}>
-                      <td><span className="story-id">{s.id}</span></td>
-                      <td><span className="story-title">{s.title}</span></td>
-                      <td>{s.primarySkill}</td>
-                      <td>{s.secondarySkill}</td>
-                      <td>{s.earnedSecret}</td>
-                      <td><StrengthBar value={s.strength} /></td>
-                      <td>{s.uses}</td>
-                      <td>
-                        <button
-                          className="btn btn-outline btn-sm"
-                          onClick={() => setEditingStory(s)}
-                        >
-                          {s.status === 'view' ? 'View' : 'Improve'}
-                        </button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={s.id}>
+                      <tr
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setExpandedId(expandedId === s.fullId ? null : s.fullId)}
+                      >
+                        <td><span className="story-date">{s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : '—'}</span></td>
+                        <td><span className="story-title">{s.title}</span></td>
+                        <td>{s.primarySkill}</td>
+                        <td><StrengthBar value={s.strength} /></td>
+                        <td>{s.uses}</td>
+                        <td>
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                            {expandedId === s.fullId ? '▲' : '▼'}
+                          </span>
+                        </td>
+                      </tr>
+                      {expandedId === s.fullId && (
+                        <tr>
+                          <td colSpan={6} style={{ padding: '16px 20px', background: 'var(--bg-muted, #f9f8f6)' }}>
+                            {s.deployFor && (
+                              <div style={{ fontSize: 13, marginBottom: 12 }}>
+                                <strong>Deploy For</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{s.deployFor}</p>
+                              </div>
+                            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13, lineHeight: 1.6 }}>
+                              <div>
+                                <strong>Situation</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.situation || '—'}</p>
+                                <strong>Task</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.task || '—'}</p>
+                              </div>
+                              <div>
+                                <strong>Action</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.action || '—'}</p>
+                                <strong>Result</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.result || '—'}</p>
+                              </div>
+                            </div>
+                            {s.earnedSecret && (
+                              <div style={{ fontSize: 13, marginTop: 4 }}>
+                                <strong>Earned Secret</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{s.earnedSecret}</p>
+                              </div>
+                            )}
+                            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                              <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setEditingStory(s); }}>
+                                Improve with Coach
+                              </button>
+                              <button
+                                className="btn btn-outline btn-sm"
+                                style={{ color: 'var(--text-danger, #c53030)' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Delete this story? This cannot be undone.')) {
+                                    deleteStory(s.fullId);
+                                    setExpandedId(null);
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
