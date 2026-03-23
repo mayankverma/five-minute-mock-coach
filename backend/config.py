@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # ElevenLabs
     ELEVENLABS_API_KEY: Optional[str] = None
     ELEVENLABS_AGENT_ID: Optional[str] = None
+    ELEVENLABS_STORY_AGENT_ID: str = ""
 
     # Stripe
     STRIPE_SECRET_KEY: Optional[str] = None
