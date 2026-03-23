@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useStoryChat } from '../hooks/useStoryChat';
+import { useStoryVoice } from '../hooks/useStoryVoice';
 import './story-builder.css';
 
 /* ── Types ── */
@@ -117,12 +118,28 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
 
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
   const [inputText, setInputText] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
   const [cardExpanded, setCardExpanded] = useState(isExisting);
   const [draft, setDraft] = useState<StoryDraft>({ ...EMPTY, ...initial });
   const [justExtracted, setJustExtracted] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice mode hook
+  const handleVoiceTranscript = useCallback((_text: string, _role: 'user' | 'coach') => {
+    // Voice transcripts are handled by ElevenLabs agent in real-time;
+    // no need to push into chat messages during the voice session.
+  }, []);
+
+  const handleVoiceSessionEnd = useCallback((transcript: { role: 'user' | 'coach'; text: string }[]) => {
+    const formatted = transcript.map(t => `${t.role === 'coach' ? 'Coach' : 'User'}: ${t.text}`).join('\n');
+    const extractionPrompt = `Please extract a STAR story from this voice conversation transcript:\n\n${formatted}`;
+    sendMessage(extractionPrompt);
+  }, [sendMessage]);
+
+  const { isConnected, isListening, connect, disconnect } = useStoryVoice(
+    handleVoiceTranscript,
+    handleVoiceSessionEnd,
+  );
 
   // Auto-scroll chat
   useEffect(() => {
@@ -245,11 +262,15 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
           ) : (
             <div className="sb-voice-area">
               <div className="sb-voice-hint">
-                {isRecording ? 'Listening... click to stop' : 'Click to start speaking'}
+                {!isConnected
+                  ? 'Click to start voice conversation'
+                  : isListening
+                    ? 'Listening...'
+                    : 'Speaking...'}
               </div>
               <button
-                className={`sb-mic-btn ${isRecording ? 'recording' : ''}`}
-                onClick={() => setIsRecording((v) => !v)}
+                className={`sb-mic-btn ${isListening ? 'recording' : ''}`}
+                onClick={() => (isConnected ? disconnect() : connect())}
               >
                 <svg viewBox="0 0 24 24">
                   <rect x="9" y="2" width="6" height="12" rx="3" />
@@ -257,7 +278,7 @@ export function StoryBuilder({ initial, onSave, onCancel }: StoryBuilderProps) {
                   <line x1="12" y1="18" x2="12" y2="22" />
                 </svg>
               </button>
-              {isRecording && (
+              {isListening && (
                 <div className="voice-bars">
                   {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                     <div key={n} className="voice-bar" />

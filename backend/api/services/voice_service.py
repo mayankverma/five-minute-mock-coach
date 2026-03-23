@@ -6,19 +6,24 @@ from backend.config import settings
 ELEVENLABS_BASE = "https://api.elevenlabs.io/v1"
 
 
-async def get_signed_url() -> str:
+async def get_signed_url(agent_id: str | None = None) -> str:
     """Get a signed URL for starting an ElevenLabs ConvAI conversation.
+
+    Args:
+        agent_id: Override the default agent ID. Falls back to ELEVENLABS_AGENT_ID.
 
     Returns the signed WebSocket URL for the frontend to connect to.
     """
     if not settings.ELEVENLABS_API_KEY:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "ElevenLabs not configured")
-    if not settings.ELEVENLABS_AGENT_ID:
+
+    resolved_agent_id = agent_id or settings.ELEVENLABS_AGENT_ID
+    if not resolved_agent_id:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "ElevenLabs agent not configured")
 
     url = f"{ELEVENLABS_BASE}/convai/conversation/get-signed-url"
     headers = {"xi-api-key": settings.ELEVENLABS_API_KEY}
-    params = {"agent_id": settings.ELEVENLABS_AGENT_ID}
+    params = {"agent_id": resolved_agent_id}
 
     async with httpx.AsyncClient(timeout=20) as client:
         resp = await client.get(url, headers=headers, params=params)
