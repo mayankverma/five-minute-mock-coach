@@ -272,7 +272,7 @@
 /* ── Right panel — Story Card ── */
 
 .sb-card-panel {
-  width: 380px;
+  width: 440px;
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease, opacity 0.3s ease;
@@ -390,7 +390,7 @@
 
 .sb-field textarea {
   resize: vertical;
-  min-height: 56px;
+  min-height: 72px;
 }
 
 /* Field that just got populated by AI — brief highlight */
@@ -497,7 +497,7 @@
 
 @media (max-width: 900px) {
   .sb-card-panel {
-    width: 280px;
+    width: 340px;
   }
 }
 

@@ -237,8 +237,13 @@ export function Storybank() {
                           <td colSpan={6} style={{ padding: '16px 20px', background: 'var(--bg-muted, #f9f8f6)' }}>
                             {s.deployFor && (
                               <div style={{ fontSize: 13, marginBottom: 12 }}>
-                                <strong>Deploy For</strong>
-                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{s.deployFor}</p>
+                                <strong>Use this story when asked about:</strong>
+                                <ul style={{ color: 'var(--text-secondary)', margin: '6px 0 0', paddingLeft: 20, listStyle: 'disc' }}>
+                                  {s.deployFor.split(';').map((item, i) => {
+                                    const text = item.trim();
+                                    return <li key={i} style={{ marginBottom: 3 }}>{text.charAt(0).toUpperCase() + text.slice(1)}</li>;
+                                  })}
+                                </ul>
                               </div>
                             )}
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13, lineHeight: 1.6 }}>
@@ -256,9 +261,14 @@ export function Storybank() {
                               </div>
                             </div>
                             {s.earnedSecret && (
-                              <div style={{ fontSize: 13, marginTop: 4 }}>
-                                <strong>Earned Secret</strong>
-                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0' }}>{s.earnedSecret}</p>
+                              <div style={{ fontSize: 13, marginTop: 12, padding: '12px 14px', background: 'var(--bg-card, #fff)', borderRadius: 8, border: '1px solid var(--border-light, #e8e5df)' }}>
+                                <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 15 }}>&#128161;</span> Earned Secret
+                                </strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '6px 0 4px', lineHeight: 1.6 }}>{s.earnedSecret}</p>
+                                <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: 11, fontStyle: 'italic' }}>
+                                  This is the unique insight only you learned from this experience. Weave it into your answer to stand out from other candidates.
+                                </p>
                               </div>
                             )}
                             <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
