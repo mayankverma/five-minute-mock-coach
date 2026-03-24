@@ -107,13 +107,14 @@ function StrengthBar({ value }: { value: number }) {
 export function Storybank() {
   const { stories, addStory, deleteStory, isLoading } = useStories();
   const { activeWorkspace } = useWorkspace();
-  const { gapAnalysis } = useStoryGaps(activeWorkspace?.id);
+  const { gapAnalysis, isLoading: gapsLoading } = useStoryGaps(activeWorkspace?.id);
   const { narrative } = useNarrativeIdentity(stories.length);
   const [showForm, setShowForm] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [hasResume, setHasResume] = useState(false);
   const [gapContext, setGapContext] = useState<StoryGap | null>(null);
+  const [reframeSource, setReframeSource] = useState<string | undefined>(undefined);
   const showBuilder = showForm || editingStory !== null;
 
   useEffect(() => {
@@ -184,17 +185,25 @@ export function Storybank() {
           storyId={editingStory?.fullId}
           storyCount={stories.length}
           hasResume={hasResume}
-          gapContext={gapContext ? { competency: gapContext.competency, recommendation: gapContext.recommendation } : undefined}
+          gapContext={gapContext ? {
+            competency: gapContext.competency,
+            recommendation: gapContext.recommendation,
+            handling_pattern: gapContext.handling_pattern,
+            sourceStoryTitle: gapContext.closest_story?.title,
+          } : undefined}
+          reframeSource={reframeSource}
           onSave={(data) => {
             addStory(data);
             setShowForm(false);
             setEditingStory(null);
             setGapContext(null);
+            setReframeSource(undefined);
           }}
           onCancel={() => {
             setShowForm(false);
             setEditingStory(null);
             setGapContext(null);
+            setReframeSource(undefined);
           }}
           onDelete={editingStory ? () => {
             deleteStory(editingStory.fullId);
@@ -340,10 +349,17 @@ export function Storybank() {
           </div>
 
           {/* ── Gap Analysis ── */}
-          {gapAnalysis && gapAnalysis.gaps.length > 0 && (
+          {gapsLoading && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-body" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>
+                Analyzing your story coverage...
+              </div>
+            </div>
+          )}
+          {!gapsLoading && gapAnalysis && gapAnalysis.gaps.length > 0 && (
             <div className="card" style={{ marginTop: 14 }}>
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="card-title"><SearchIcon /> {gapAnalysis.mode === 'workspace' ? 'Gaps for This Role' : 'Story Coverage'}</span>
+                <span className="card-title"><SearchIcon /> {gapAnalysis.mode === 'workspace' ? 'Gaps for This Role' : 'Story Coverage (Recommended)'}</span>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   Coverage: {gapAnalysis.coverage_score}/10
                 </span>
@@ -376,11 +392,25 @@ export function Storybank() {
                             <button
                               className="btn btn-outline btn-sm"
                               onClick={() => {
-                                const match = stories.find(s => s.fullId === gap.closest_story?.id);
+                                // Find the source story to pass its content as context
+                                const match = stories.find(s =>
+                                  s.fullId === gap.closest_story?.id ||
+                                  s.title.toLowerCase().includes(gap.closest_story?.title?.toLowerCase().slice(0, 20) || '')
+                                );
                                 if (match) {
-                                  setGapContext(gap);
-                                  setEditingStory(match);
+                                  setReframeSource([
+                                    `I want to reframe this existing story for ${gap.competency}. Here is the original story:`,
+                                    `Title: ${match.title}`,
+                                    match.situation ? `Situation: ${match.situation}` : '',
+                                    match.task ? `Task: ${match.task}` : '',
+                                    match.action ? `Action: ${match.action}` : '',
+                                    match.result ? `Result: ${match.result}` : '',
+                                    match.primarySkill ? `Primary Skill: ${match.primarySkill}` : '',
+                                    match.earnedSecret ? `Earned Secret: ${match.earnedSecret}` : '',
+                                  ].filter(Boolean).join('\n'));
                                 }
+                                setGapContext(gap);
+                                setShowForm(true);
                               }}
                             >
                               Reframe

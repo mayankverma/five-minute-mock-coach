@@ -38,7 +38,7 @@ export function useStoryGaps(workspaceId?: string) {
   const gapsQuery = useQuery({
     queryKey: ['story-gaps', user?.id, workspaceId],
     queryFn: () => fetchGaps(workspaceId),
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
     enabled: !!user && !authLoading,
   });
 

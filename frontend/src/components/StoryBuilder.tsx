@@ -31,7 +31,8 @@ interface StoryBuilderProps {
   storyId?: string;
   storyCount?: number;
   hasResume?: boolean;
-  gapContext?: { competency: string; recommendation: string };
+  gapContext?: { competency: string; recommendation: string; handling_pattern?: string; sourceStoryTitle?: string };
+  reframeSource?: string;
   onSave: (draft: StoryDraft) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -61,7 +62,12 @@ const OPENERS = [
   "Let's build a story that sets you apart.\n\nWhen have you gone beyond what was expected — taken ownership of something messy, or delivered something nobody thought was possible?",
 ];
 
-function getOpening(storyCount?: number, hasResume?: boolean, gapCtx?: { competency: string; recommendation: string }): ChatMessage[] {
+function getOpening(storyCount?: number, hasResume?: boolean, gapCtx?: { competency: string; recommendation: string; handling_pattern?: string; sourceStoryTitle?: string }): ChatMessage[] {
+  // Reframe: take an existing story and tell it through a different lens
+  if (gapCtx?.handling_pattern === 'reframe_existing' && gapCtx.sourceStoryTitle) {
+    return [{ role: 'coach', text: `Let's create a new story about **${gapCtx.competency}** by reframing your "${gapCtx.sourceStoryTitle}" experience.\n\nSame events, different angle — we'll foreground the ${gapCtx.competency.toLowerCase()} dimension. This will be a separate story in your storybank.\n\nWhat part of that experience best shows ${gapCtx.competency.toLowerCase()}?` }];
+  }
+
   // Gap-driven: user clicked "Build Story" on a specific gap
   if (gapCtx) {
     return [{ role: 'coach', text: `You need a story about **${gapCtx.competency}**. ${gapCtx.recommendation}\n\nThink about a time in your career that fits this. What comes to mind?` }];
@@ -259,11 +265,11 @@ function renderMarkdown(text: string) {
 
 /* ── Component ── */
 
-export function StoryBuilder({ initial, storyId, storyCount, hasResume, gapContext, onSave, onCancel, onDelete }: StoryBuilderProps) {
+export function StoryBuilder({ initial, storyId, storyCount, hasResume, gapContext, reframeSource, onSave, onCancel, onDelete }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
 
   // Build story context string so the coach can see the full story when editing
-  const storyContext = isExisting ? [
+  const storyContext = reframeSource ? reframeSource : isExisting ? [
     `Here is the full story I'm working on improving:`,
     `Title: ${initial!.title}`,
     initial!.situation ? `Situation: ${initial!.situation}` : '',
