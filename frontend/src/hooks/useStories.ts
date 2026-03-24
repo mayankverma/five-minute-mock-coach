@@ -92,7 +92,8 @@ export function useStories() {
     },
   });
 
-  const addStory = (story: Record<string, unknown>) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addStory = (story: any) => {
     addMutation.mutate(story);
   };
 
