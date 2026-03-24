@@ -44,7 +44,7 @@ async function getToken(): Promise<string | null> {
   return null;
 }
 
-export function useStoryChat(openingMessages: ChatMessage[] = []): UseStoryChatReturn {
+export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?: string): UseStoryChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>(openingMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [storyExtract, setStoryExtract] = useState<StoryExtract | null>(null);
@@ -60,6 +60,11 @@ export function useStoryChat(openingMessages: ChatMessage[] = []): UseStoryChatR
       role: m.role === 'coach' ? 'assistant' : 'user',
       content: m.text,
     }));
+
+    // If we have story context, prepend it so the coach can see the full story
+    if (storyContext) {
+      apiMessages.unshift({ role: 'user', content: storyContext });
+    }
 
     setIsStreaming(true);
 

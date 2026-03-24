@@ -58,9 +58,68 @@ const OPENING: ChatMessage[] = [
 const existingOpening = (title: string): ChatMessage[] => [
   {
     role: 'coach',
-    text: `I've loaded your story "${title}". I can see the details on the right.\n\nWould you like to strengthen a specific section, extract a deeper earned secret, or practice telling this story in 90 seconds?`,
+    text: `I've loaded your story "${title}". I can see the details on the right.\n\nPick an area below to improve, or type your own question.`,
   },
 ];
+
+function buildSuggestions(draft: Partial<StoryDraft>): { label: string; prompt: string }[] {
+  const suggestions: { label: string; prompt: string }[] = [];
+
+  // Always offer the 90-second practice
+  suggestions.push({
+    label: '🎯 Practice telling this in 90 seconds',
+    prompt: 'Help me practice telling this story concisely in 90 seconds. Coach me on what to cut and what to emphasize.',
+  });
+
+  // Check for weak sections
+  if (!draft.situation || draft.situation.length < 80) {
+    suggestions.push({
+      label: '📍 Strengthen the Situation',
+      prompt: 'The Situation section feels thin. Help me add more context — what was at stake, who was involved, and why it mattered.',
+    });
+  }
+  if (!draft.action || draft.action.length < 100) {
+    suggestions.push({
+      label: '⚡ Deepen the Action',
+      prompt: 'Help me make the Action section more specific. What concrete steps did I take? What decisions did I make and why?',
+    });
+  }
+  if (!draft.result || draft.result.length < 80) {
+    suggestions.push({
+      label: '📊 Quantify the Result',
+      prompt: 'Help me make the Result more compelling with specific numbers, metrics, or concrete outcomes.',
+    });
+  }
+
+  // Earned secret quality
+  if (!draft.earnedSecret || draft.earnedSecret.length < 40) {
+    suggestions.push({
+      label: '💡 Extract a deeper Earned Secret',
+      prompt: 'Help me dig deeper into what I uniquely learned from this experience — the insight that only someone who lived it would know.',
+    });
+  } else {
+    suggestions.push({
+      label: '💡 Sharpen the Earned Secret',
+      prompt: `My current earned secret is: "${draft.earnedSecret}". Help me make it more memorable and unique — something an interviewer would remember.`,
+    });
+  }
+
+  // Deploy-for expansion
+  if (!draft.deployFor || draft.deployFor.split(';').length < 3) {
+    suggestions.push({
+      label: '🗂️ Find more interview questions this fits',
+      prompt: 'What other common interview questions could I deploy this story for? Help me identify all the question types where this story would be a strong answer.',
+    });
+  }
+
+  // General strength
+  suggestions.push({
+    label: '🔍 What\'s the weakest part of this story?',
+    prompt: 'Analyze this story critically. What is the weakest section and what specific improvements would raise the overall strength?',
+  });
+
+  return suggestions;
+}
 
 /* ── Inline SVG icons ── */
 
@@ -109,12 +168,91 @@ function CardIcon() {
   );
 }
 
+/* ── Simple markdown renderer ── */
+
+function renderInline(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/).map((seg, k) =>
+    seg.startsWith('**') && seg.endsWith('**') ? (
+      <strong key={k}>{seg.slice(2, -2)}</strong>
+    ) : (
+      <span key={k}>{seg}</span>
+    ),
+  );
+}
+
+function renderMarkdown(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+  let listOrdered = false;
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    const Tag = listOrdered ? 'ol' : 'ul';
+    elements.push(
+      <Tag key={elements.length} style={{ margin: '6px 0', paddingLeft: 20 }}>
+        {listItems.map((item, i) => <li key={i} style={{ marginBottom: 3 }}>{renderInline(item)}</li>)}
+      </Tag>
+    );
+    listItems = [];
+  };
+
+  for (let j = 0; j < lines.length; j++) {
+    const line = lines[j];
+
+    // Headers
+    if (line.startsWith('### ')) {
+      flushList();
+      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 13, marginTop: 10, marginBottom: 4 }}>{renderInline(line.slice(4))}</div>);
+    } else if (line.startsWith('## ')) {
+      flushList();
+      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 14, marginTop: 12, marginBottom: 4 }}>{renderInline(line.slice(3))}</div>);
+    } else if (line.match(/^[-*] /)) {
+      // Unordered list item
+      if (listOrdered) flushList();
+      listOrdered = false;
+      listItems.push(line.slice(2));
+    } else if (line.match(/^\d+\.\s/)) {
+      // Ordered list item
+      if (!listOrdered && listItems.length) flushList();
+      listOrdered = true;
+      listItems.push(line.replace(/^\d+\.\s/, ''));
+    } else {
+      flushList();
+      if (line.trim() === '') {
+        elements.push(<br key={j} />);
+      } else {
+        elements.push(<span key={j}>{renderInline(line)}<br /></span>);
+      }
+    }
+  }
+  flushList();
+  return <>{elements}</>;
+}
+
 /* ── Component ── */
 
 export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
+
+  // Build story context string so the coach can see the full story when editing
+  const storyContext = isExisting ? [
+    `Here is the full story I'm working on improving:`,
+    `Title: ${initial!.title}`,
+    initial!.situation ? `Situation: ${initial!.situation}` : '',
+    initial!.task ? `Task: ${initial!.task}` : '',
+    initial!.action ? `Action: ${initial!.action}` : '',
+    initial!.result ? `Result: ${initial!.result}` : '',
+    initial!.primarySkill ? `Primary Skill: ${initial!.primarySkill}` : '',
+    initial!.secondarySkill ? `Secondary Skill: ${initial!.secondarySkill}` : '',
+    initial!.earnedSecret ? `Earned Secret: ${initial!.earnedSecret}` : '',
+    initial!.domain ? `Domain: ${initial!.domain}` : '',
+    initial!.deployFor ? `Deploy For: ${initial!.deployFor}` : '',
+  ].filter(Boolean).join('\n') : undefined;
+
   const { messages, isStreaming, storyExtract, sendMessage } = useStoryChat(
     isExisting ? existingOpening(initial!.title!) : OPENING,
+    storyContext,
   );
 
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
@@ -122,6 +260,8 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
   const [cardExpanded, setCardExpanded] = useState(isExisting);
   const [draft, setDraft] = useState<StoryDraft>({ ...EMPTY, ...initial });
   const [justExtracted, setJustExtracted] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(isExisting);
+  const suggestions = isExisting ? buildSuggestions(initial || {}) : [];
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -174,6 +314,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
 
   const handleSend = () => {
     if (!inputText.trim() || isStreaming) return;
+    setShowSuggestions(false);
     sendMessage(inputText.trim());
     setInputText('');
   };
@@ -222,20 +363,44 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             {messages.map((msg, i) => (
               <div key={i} className={`sb-msg ${msg.role}`}>
                 {msg.role === 'coach' && <div className="sb-msg-label">Coach</div>}
-                {msg.text.split('\n').map((line, j) => (
-                  <span key={j}>
-                    {line.split(/(\*\*[^*]+\*\*)/).map((seg, k) =>
-                      seg.startsWith('**') && seg.endsWith('**') ? (
-                        <strong key={k}>{seg.slice(2, -2)}</strong>
-                      ) : (
-                        <span key={k}>{seg}</span>
-                      ),
-                    )}
-                    {j < msg.text.split('\n').length - 1 && <br />}
-                  </span>
-                ))}
+                {renderMarkdown(msg.text)}
               </div>
             ))}
+            {showSuggestions && !isStreaming && messages.length <= 1 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '4px 0 12px' }}>
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    style={{
+                      padding: '8px 14px',
+                      fontSize: 13,
+                      lineHeight: 1.4,
+                      background: 'var(--bg-card, #fff)',
+                      border: '1px solid var(--border-light, #e0ddd7)',
+                      borderRadius: 20,
+                      cursor: 'pointer',
+                      color: 'var(--text-primary)',
+                      textAlign: 'left',
+                      transition: 'border-color 0.15s, background 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent, #4a9e8f)';
+                      e.currentTarget.style.background = 'var(--bg-muted, #f5f3ef)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-light, #e0ddd7)';
+                      e.currentTarget.style.background = 'var(--bg-card, #fff)';
+                    }}
+                    onClick={() => {
+                      setShowSuggestions(false);
+                      sendMessage(s.prompt);
+                    }}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {isStreaming && messages[messages.length - 1]?.text === '' && (
               <div className="sb-typing">
                 <div className="sb-typing-dot" />
