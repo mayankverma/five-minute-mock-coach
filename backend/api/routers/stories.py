@@ -359,8 +359,9 @@ async def improve_story(
 @router.get("/gaps")
 async def get_story_gaps(
     user: AuthUser = Depends(get_current_user),
+    workspace_id: Optional[str] = Query(None),
 ):
-    """Identify missing story types based on target roles."""
+    """Context-aware gap analysis. Pass workspace_id for JD-prioritized gaps."""
     db = get_supabase()
     stories_resp = (
         db.table("story")
@@ -371,21 +372,42 @@ async def get_story_gaps(
     )
     stories = stories_resp.data or []
 
+    # If no stories, return basic coverage with universal categories
     if not stories:
+        from backend.api.services.story_coach import UNIVERSAL_CATEGORIES
         return {
-            "gaps": {
-                "missing_categories": [
-                    "leadership", "conflict", "failure", "achievement",
-                    "innovation", "teamwork", "growth", "customer",
-                ],
-                "recommendations": ["Start by adding your strongest career story."],
-                "coverage_score": 0,
-            }
+            "mode": "universal",
+            "coverage_score": 0,
+            "mapped_stories": [],
+            "gaps": [
+                {"competency": cat, "severity": "important", "reason": "No stories yet",
+                 "handling_pattern": "build_new", "recommendation": f"Build a {cat} story",
+                 "closest_story": None}
+                for cat in UNIVERSAL_CATEGORIES
+            ],
+            "concentration_risk": None,
         }
 
-    user_context = await coach.build_user_context(user.id)
-    result = await story_coach.analyze_gaps(stories, user_context)
-    return {"gaps": result}
+    # Fetch workspace if provided
+    workspace = None
+    if workspace_id:
+        try:
+            ws_resp = (
+                db.table("job_workspace")
+                .select("*")
+                .eq("id", workspace_id)
+                .eq("user_id", user.id)
+                .maybe_single()
+                .execute()
+            )
+            workspace = ws_resp.data if ws_resp else None
+        except Exception:
+            pass
+
+    user_context = await coach.build_user_context(user.id, workspace_id=workspace_id)
+    result = await story_coach.analyze_gaps(stories, user_context, workspace=workspace)
+    result["mode"] = "workspace" if workspace else "universal"
+    return result
 
 
 @router.get("/narrative")

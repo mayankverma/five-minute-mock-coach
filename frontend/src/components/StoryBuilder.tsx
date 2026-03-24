@@ -31,6 +31,7 @@ interface StoryBuilderProps {
   storyId?: string;
   storyCount?: number;
   hasResume?: boolean;
+  gapContext?: { competency: string; recommendation: string };
   onSave: (draft: StoryDraft) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -60,7 +61,12 @@ const OPENERS = [
   "Let's build a story that sets you apart.\n\nWhen have you gone beyond what was expected — taken ownership of something messy, or delivered something nobody thought was possible?",
 ];
 
-function getOpening(storyCount?: number, hasResume?: boolean): ChatMessage[] {
+function getOpening(storyCount?: number, hasResume?: boolean, gapCtx?: { competency: string; recommendation: string }): ChatMessage[] {
+  // Gap-driven: user clicked "Build Story" on a specific gap
+  if (gapCtx) {
+    return [{ role: 'coach', text: `You need a story about **${gapCtx.competency}**. ${gapCtx.recommendation}\n\nThink about a time in your career that fits this. What comes to mind?` }];
+  }
+
   // No stories yet + has resume: nudge to seed from resume
   if ((storyCount === undefined || storyCount === 0) && hasResume) {
     return [{ role: 'coach', text: "I can see your resume — there are some great experiences in there that would make strong interview stories.\n\nWould you like me to suggest a story from your resume, or do you have a specific experience in mind?" }];
@@ -253,7 +259,7 @@ function renderMarkdown(text: string) {
 
 /* ── Component ── */
 
-export function StoryBuilder({ initial, storyId, storyCount, hasResume, onSave, onCancel, onDelete }: StoryBuilderProps) {
+export function StoryBuilder({ initial, storyId, storyCount, hasResume, gapContext, onSave, onCancel, onDelete }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
 
   // Build story context string so the coach can see the full story when editing
@@ -272,7 +278,7 @@ export function StoryBuilder({ initial, storyId, storyCount, hasResume, onSave, 
   ].filter(Boolean).join('\n') : undefined;
 
   const { messages, isStreaming, storyExtract, sendMessage, isResuming, abandonSession, sessionId } = useStoryChat(
-    isExisting ? existingOpening(initial!.title!) : getOpening(storyCount, hasResume),
+    isExisting ? existingOpening(initial!.title!) : getOpening(storyCount, hasResume, gapContext),
     storyContext,
     storyId,
   );
