@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useStoryChat } from '../hooks/useStoryChat';
 import { useStoryVoice } from '../hooks/useStoryVoice';
+import { useStoryVersions, type StoryVersion } from '../hooks/useStoryVersions';
 import './story-builder.css';
 
 /* ── Types ── */
@@ -27,6 +28,9 @@ interface ChatMessage {
 interface StoryBuilderProps {
   /** Pre-fill for existing stories; omit for new */
   initial?: Partial<StoryDraft>;
+  storyId?: string;
+  storyCount?: number;
+  hasResume?: boolean;
   onSave: (draft: StoryDraft) => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -48,12 +52,29 @@ const EMPTY: StoryDraft = {
 
 /* ── Opening messages ── */
 
-const OPENING: ChatMessage[] = [
-  {
-    role: 'coach',
-    text: "Let's surface a great interview story. Don't worry about structure yet — I'll help shape it.\n\nThink about a moment at work where you were at your best. What comes to mind?",
-  },
+const OPENERS = [
+  "Let's surface a great interview story. Don't worry about structure yet — I'll help shape it.\n\nThink about a moment at work where you were at your best. What comes to mind?",
+  "I'm here to help you capture a story interviewers will remember.\n\nWhat's the hardest professional situation you've navigated? The ones with real stakes tend to make the best stories.",
+  "Let's find a story that shows who you are as a professional.\n\nWhen have you made something significant happen — a project you turned around, a team you built, a problem everyone else was stuck on?",
+  "Every great interview answer starts with a real story.\n\nThink about a decision you'd make differently, or a time you failed and came back stronger. What comes to mind?",
+  "Let's build a story that sets you apart.\n\nWhen have you gone beyond what was expected — taken ownership of something messy, or delivered something nobody thought was possible?",
 ];
+
+function getOpening(storyCount?: number, hasResume?: boolean): ChatMessage[] {
+  // No stories yet + has resume: nudge to seed from resume
+  if ((storyCount === undefined || storyCount === 0) && hasResume) {
+    return [{ role: 'coach', text: "I can see your resume — there are some great experiences in there that would make strong interview stories.\n\nWould you like me to suggest a story from your resume, or do you have a specific experience in mind?" }];
+  }
+
+  // No stories + no resume: nudge to upload
+  if ((storyCount === undefined || storyCount === 0) && !hasResume) {
+    return [{ role: 'coach', text: "Let's build your first interview story. I can help you surface and structure it.\n\nTip: If you upload your resume in the Materials section, I can suggest story ideas from your experience. For now, think about a moment at work where you made a real impact — what comes to mind?" }];
+  }
+
+  // Has stories: rotate through openers
+  const text = OPENERS[Math.floor(Math.random() * OPENERS.length)];
+  return [{ role: 'coach', text }];
+}
 
 const existingOpening = (title: string): ChatMessage[] => [
   {
@@ -232,7 +253,7 @@ function renderMarkdown(text: string) {
 
 /* ── Component ── */
 
-export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuilderProps) {
+export function StoryBuilder({ initial, storyId, storyCount, hasResume, onSave, onCancel, onDelete }: StoryBuilderProps) {
   const isExisting = !!(initial && initial.title);
 
   // Build story context string so the coach can see the full story when editing
@@ -250,9 +271,10 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
     initial!.deployFor ? `Deploy For: ${initial!.deployFor}` : '',
   ].filter(Boolean).join('\n') : undefined;
 
-  const { messages, isStreaming, storyExtract, sendMessage } = useStoryChat(
-    isExisting ? existingOpening(initial!.title!) : OPENING,
+  const { messages, isStreaming, storyExtract, sendMessage, isResuming, abandonSession, sessionId } = useStoryChat(
+    isExisting ? existingOpening(initial!.title!) : getOpening(storyCount, hasResume),
     storyContext,
+    storyId,
   );
 
   const [mode, setMode] = useState<'chat' | 'voice'>('chat');
@@ -262,6 +284,9 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
   const [justExtracted, setJustExtracted] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(isExisting);
   const suggestions = isExisting ? buildSuggestions(initial || {}) : [];
+  const { versions } = useStoryVersions(storyId);
+  const [viewingVersion, setViewingVersion] = useState<StoryVersion | null>(null);
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -297,6 +322,21 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
     }
   }, [storyExtract]);
 
+  // When viewing an old version, show its fields instead of the current draft
+  const displayDraft: StoryDraft = viewingVersion ? {
+    title: (viewingVersion.fields.title as string) || '',
+    situation: (viewingVersion.fields.situation as string) || '',
+    task: (viewingVersion.fields.task as string) || '',
+    action: (viewingVersion.fields.action as string) || '',
+    result: (viewingVersion.fields.result as string) || '',
+    primarySkill: (viewingVersion.fields.primary_skill as string) || '',
+    secondarySkill: (viewingVersion.fields.secondary_skill as string) || '',
+    earnedSecret: (viewingVersion.fields.earned_secret as string) || '',
+    strength: (viewingVersion.fields.strength as number) || 0,
+    domain: (viewingVersion.fields.domain as string) || '',
+    deployFor: (viewingVersion.fields.deploy_for as string) || '',
+  } : draft;
+
   const updateDraft = (field: keyof StoryDraft, value: string | number) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
   };
@@ -307,7 +347,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
     'primarySkill', 'earnedSecret',
   ];
   const filledCount = fieldKeys.filter((k) => {
-    const v = draft[k];
+    const v = displayDraft[k];
     return typeof v === 'string' ? v.trim().length > 0 : v > 0;
   }).length;
   const progressPct = Math.round((filledCount / fieldKeys.length) * 100);
@@ -360,6 +400,31 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
         {/* ── Left: Chat panel ── */}
         <div className="sb-chat-panel">
           <div className="sb-chat-messages">
+            {isResuming && (
+              <div style={{
+                padding: '8px 14px',
+                background: 'var(--primary-lighter, #e4f2ef)',
+                border: '1px solid var(--primary-light, #b8ddd4)',
+                borderRadius: 8,
+                fontSize: 12,
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 8,
+              }}>
+                <span>Resuming your previous session</span>
+                <button
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    fontSize: 11, color: 'var(--text-muted)', textDecoration: 'underline',
+                  }}
+                  onClick={abandonSession}
+                >
+                  Start fresh
+                </button>
+              </div>
+            )}
             {messages.map((msg, i) => (
               <div key={i} className={`sb-msg ${msg.role}`}>
                 {msg.role === 'coach' && <div className="sb-msg-label">Coach</div>}
@@ -464,6 +529,62 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className="sb-card-header-title">
               <CardIcon />
               <span>Story Card</span>
+              {versions.length > 0 && (
+                <div style={{ position: 'relative', marginLeft: 8 }}>
+                  <button
+                    style={{
+                      padding: '2px 8px', fontSize: 10, fontWeight: 600,
+                      background: viewingVersion ? 'var(--primary-lighter)' : 'var(--bg)',
+                      border: '1px solid var(--border)', borderRadius: 4,
+                      cursor: 'pointer', color: 'var(--text-secondary)',
+                    }}
+                    onClick={() => setShowVersionDropdown(v => !v)}
+                  >
+                    {viewingVersion ? `v${viewingVersion.version_num}` : `v${versions[0]?.version_num || 1}`} ▼
+                  </button>
+                  {showVersionDropdown && (
+                    <div style={{
+                      position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                      background: 'var(--card, #fff)', border: '1px solid var(--border-light)',
+                      borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      zIndex: 100, minWidth: 220, maxHeight: 240, overflowY: 'auto',
+                    }}>
+                      {versions.map(v => (
+                        <button
+                          key={v.id}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '8px 12px', border: 'none', cursor: 'pointer',
+                            fontSize: 12, lineHeight: 1.4,
+                            background: (viewingVersion?.id === v.id || (!viewingVersion && v.version_num === versions[0]?.version_num))
+                              ? 'var(--primary-lighter)' : 'transparent',
+                          }}
+                          onClick={() => {
+                            if (v.version_num === versions[0]?.version_num) {
+                              setViewingVersion(null);
+                            } else {
+                              setViewingVersion(v);
+                            }
+                            setShowVersionDropdown(false);
+                          }}
+                        >
+                          <div style={{ fontWeight: 600 }}>
+                            v{v.version_num}{v.version_num === versions[0]?.version_num ? ' (current)' : ''}
+                            <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>
+                              {new Date(v.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          {v.change_summary && (
+                            <div style={{ color: 'var(--text-muted)', fontSize: 11, marginTop: 2 }}>
+                              {v.change_summary}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <button
               className="sb-expand-btn"
@@ -483,11 +604,26 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
           </div>
 
           {/* Scrollable form */}
-          <div className="sb-card-body">
+          {viewingVersion && (
+            <div style={{
+              padding: '8px 16px', fontSize: 12,
+              background: 'var(--primary-lighter)', borderBottom: '1px solid var(--primary-light)',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span>Viewing v{viewingVersion.version_num} — {new Date(viewingVersion.created_at).toLocaleDateString()}</span>
+              <button
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--primary-dark)', fontWeight: 600 }}
+                onClick={() => setViewingVersion(null)}
+              >
+                Back to current
+              </button>
+            </div>
+          )}
+          <div className="sb-card-body" style={viewingVersion ? { opacity: 0.7, pointerEvents: 'none' } : undefined}>
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Title</label>
               <input
-                value={draft.title}
+                value={displayDraft.title}
                 onChange={(e) => updateDraft('title', e.target.value)}
                 placeholder="Generated from conversation..."
               />
@@ -496,7 +632,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Situation</label>
               <textarea
-                value={draft.situation}
+                value={displayDraft.situation}
                 onChange={(e) => updateDraft('situation', e.target.value)}
                 placeholder="Will populate as you talk..."
                 rows={3}
@@ -506,7 +642,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Task</label>
               <textarea
-                value={draft.task}
+                value={displayDraft.task}
                 onChange={(e) => updateDraft('task', e.target.value)}
                 placeholder="Will populate as you talk..."
                 rows={2}
@@ -516,7 +652,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Action</label>
               <textarea
-                value={draft.action}
+                value={displayDraft.action}
                 onChange={(e) => updateDraft('action', e.target.value)}
                 placeholder="Will populate as you talk..."
                 rows={3}
@@ -526,7 +662,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Result</label>
               <textarea
-                value={draft.result}
+                value={displayDraft.result}
                 onChange={(e) => updateDraft('result', e.target.value)}
                 placeholder="Will populate as you talk..."
                 rows={2}
@@ -537,7 +673,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
               <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
                 <label>Primary Skill</label>
                 <input
-                  value={draft.primarySkill}
+                  value={displayDraft.primarySkill}
                   onChange={(e) => updateDraft('primarySkill', e.target.value)}
                   placeholder="Auto-tagged..."
                 />
@@ -545,7 +681,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
               <div className="sb-field">
                 <label>Secondary Skill</label>
                 <input
-                  value={draft.secondarySkill}
+                  value={displayDraft.secondarySkill}
                   onChange={(e) => updateDraft('secondarySkill', e.target.value)}
                   placeholder="Auto-tagged..."
                 />
@@ -555,7 +691,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className={`sb-field ${justExtracted ? 'just-filled' : ''}`}>
               <label>Earned Secret</label>
               <textarea
-                value={draft.earnedSecret}
+                value={displayDraft.earnedSecret}
                 onChange={(e) => updateDraft('earnedSecret', e.target.value)}
                 placeholder="The unique insight only you learned..."
                 rows={2}
@@ -570,7 +706,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
                     <button
                       key={n}
                       type="button"
-                      className={`sb-strength-dot ${n <= draft.strength ? 'filled' : ''}`}
+                      className={`sb-strength-dot ${n <= displayDraft.strength ? 'filled' : ''}`}
                       onClick={() => updateDraft('strength', n)}
                     >
                       {n}
@@ -581,7 +717,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
               <div className="sb-field">
                 <label>Domain</label>
                 <input
-                  value={draft.domain}
+                  value={displayDraft.domain}
                   onChange={(e) => updateDraft('domain', e.target.value)}
                   placeholder="e.g. FinTech"
                 />
@@ -591,7 +727,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <div className="sb-field">
               <label>Deploy For</label>
               <input
-                value={draft.deployFor}
+                value={displayDraft.deployFor}
                 onChange={(e) => updateDraft('deployFor', e.target.value)}
                 placeholder="e.g. Leadership questions"
               />
@@ -599,7 +735,7 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
           </div>
 
           {/* Footer actions */}
-          <div className="sb-card-footer">
+          <div className="sb-card-footer" style={viewingVersion ? { display: 'none' } : undefined}>
             {onDelete && (
               <button
                 className="btn btn-outline btn-sm"
@@ -617,6 +753,8 @@ export function StoryBuilder({ initial, onSave, onCancel, onDelete }: StoryBuild
             <button
               className="btn btn-primary btn-sm"
               onClick={() => onSave(draft)}
+              disabled={isStreaming || (!!sessionId && messages.length > 1)}
+              title={isStreaming || (!!sessionId && messages.length > 1) ? 'Coach will save when ready' : ''}
             >
               Save Story
             </button>

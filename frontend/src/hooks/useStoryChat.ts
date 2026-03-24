@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import api from '../lib/api';
 
 interface ChatMessage {
   role: 'coach' | 'user';
@@ -24,8 +25,11 @@ interface UseStoryChatReturn {
   messages: ChatMessage[];
   isStreaming: boolean;
   storyExtract: StoryExtract | null;
+  sessionId: string | null;
+  isResuming: boolean;
   sendMessage: (text: string) => Promise<void>;
   resetChat: (opening?: ChatMessage[]) => void;
+  abandonSession: () => Promise<void>;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -44,11 +48,55 @@ async function getToken(): Promise<string | null> {
   return null;
 }
 
-export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?: string): UseStoryChatReturn {
+export function useStoryChat(
+  openingMessages: ChatMessage[] = [],
+  storyContext?: string,
+  storyId?: string,
+): UseStoryChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>(openingMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [storyExtract, setStoryExtract] = useState<StoryExtract | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isResuming, setIsResuming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const initializedRef = useRef(false);
+
+  // On mount: check for active session to resume
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
+    async function initSession() {
+      if (!storyId) {
+        // New story — no session needed until the story is created
+        return;
+      }
+
+      // Existing story — check for active session
+      try {
+        const { data } = await api.get(`/api/stories/${storyId}/conversations/active`);
+        if (data && data.messages && data.messages.length > 0) {
+          // Resume: load existing messages
+          setMessages(data.messages as ChatMessage[]);
+          setSessionId(data.id);
+          setIsResuming(true);
+          return;
+        }
+      } catch {
+        // 404 = no active session, create a new one
+      }
+
+      // No active session — create one
+      try {
+        const { data } = await api.post(`/api/stories/${storyId}/conversations`);
+        setSessionId(data.id);
+      } catch {
+        // Ignore — will work without session persistence
+      }
+    }
+
+    initSession();
+  }, [storyId]);
 
   const sendMessage = useCallback(async (text: string) => {
     const userMsg: ChatMessage = { role: 'user', text };
@@ -81,7 +129,10 @@ export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?:
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          session_id: sessionId,
+        }),
         signal: abortRef.current.signal,
       });
 
@@ -123,6 +174,9 @@ export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?:
                 });
               } else if (eventType === 'story_complete') {
                 setStoryExtract(parsed as StoryExtract);
+              } else if (eventType === 'version_created') {
+                // Session was completed by the backend — clear sessionId
+                setSessionId(null);
               }
               // 'done' event — no action needed
             } catch { /* skip unparseable */ }
@@ -148,7 +202,7 @@ export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?:
     } finally {
       setIsStreaming(false);
     }
-  }, [messages]);
+  }, [messages, storyContext, sessionId]);
 
   const resetChat = useCallback((opening: ChatMessage[] = []) => {
     abortRef.current?.abort();
@@ -157,5 +211,16 @@ export function useStoryChat(openingMessages: ChatMessage[] = [], storyContext?:
     setIsStreaming(false);
   }, []);
 
-  return { messages, isStreaming, storyExtract, sendMessage, resetChat };
+  const abandonSession = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      await api.put(`/api/stories/conversations/${sessionId}/abandon`);
+      setSessionId(null);
+      setIsResuming(false);
+    } catch {
+      // Ignore
+    }
+  }, [sessionId]);
+
+  return { messages, isStreaming, storyExtract, sessionId, isResuming, sendMessage, resetChat, abandonSession };
 }

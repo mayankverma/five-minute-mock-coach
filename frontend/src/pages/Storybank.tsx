@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStories, type Story } from '../hooks/useStories';
 import { StoryBuilder } from '../components/StoryBuilder';
+import api from '../lib/api';
 import './pages.css';
 
 /* ── Inline SVG icons (from reference HTML symbol defs) ── */
@@ -105,7 +106,14 @@ export function Storybank() {
   const [showForm, setShowForm] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasResume, setHasResume] = useState(false);
   const showBuilder = showForm || editingStory !== null;
+
+  useEffect(() => {
+    api.get('/api/materials/resume').then(({ data }) => {
+      setHasResume(!!(data && data.id));
+    }).catch(() => {});
+  }, []);
 
   const storyCount = stories.length;
   const gapCount = gaps.length;
@@ -166,6 +174,9 @@ export function Storybank() {
             domain: editingStory.domain,
             deployFor: editingStory.deployFor,
           } : undefined}
+          storyId={editingStory?.fullId}
+          storyCount={stories.length}
+          hasResume={hasResume}
           onSave={(data) => {
             addStory(data);
             setShowForm(false);
