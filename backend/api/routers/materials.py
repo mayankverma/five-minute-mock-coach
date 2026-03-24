@@ -88,14 +88,17 @@ async def get_pitch(
 ):
     """Get stored positioning statement."""
     db = get_supabase()
-    resp = (
-        db.table("positioning_statement")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    if not resp.data:
+    try:
+        resp = (
+            db.table("positioning_statement")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "No positioning statement found. Generate one first.")
+    if not resp or not resp.data:
         raise HTTPException(404, "No positioning statement found. Generate one first.")
     return resp.data
 
@@ -123,14 +126,17 @@ async def get_linkedin(
 ):
     """Get stored LinkedIn analysis."""
     db = get_supabase()
-    resp = (
-        db.table("linkedin_analysis")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    if not resp.data:
+    try:
+        resp = (
+            db.table("linkedin_analysis")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "No LinkedIn analysis found. Run an audit first.")
+    if not resp or not resp.data:
         raise HTTPException(404, "No LinkedIn analysis found. Run an audit first.")
     return resp.data
 
@@ -162,14 +168,17 @@ async def get_comp_strategy(
 ):
     """Get stored compensation strategy."""
     db = get_supabase()
-    resp = (
-        db.table("comp_strategy")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    if not resp.data:
+    try:
+        resp = (
+            db.table("comp_strategy")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(404, "No comp strategy found. Build one first.")
+    if not resp or not resp.data:
         raise HTTPException(404, "No comp strategy found. Build one first.")
     return resp.data
 
