@@ -1,13 +1,19 @@
 """Materials API — resume, pitch, LinkedIn, salary coaching."""
 
+import io
+import json as json_mod
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from backend.api.auth import get_current_user, AuthUser
 from backend.api.db.client import get_supabase
 from backend.api.services.ai_coach import AICoachService
 from backend.api.services.resume_service import ResumeService
 from backend.api.services.pitch_service import PitchService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/materials", tags=["materials"])
 coach = AICoachService()
@@ -116,15 +122,25 @@ async def generate_pitch(
 
 # --- LinkedIn ---
 
-class LinkedInAuditRequest(BaseModel):
-    linkedin_text: str
+
+def _extract_pdf_text(content: bytes) -> str:
+    """Extract text from PDF bytes using pymupdf."""
+    try:
+        import pymupdf
+        doc = pymupdf.open(stream=content, filetype="pdf")
+        pages = [page.get_text() for page in doc]
+        doc.close()
+        return "\n".join(pages)
+    except Exception as e:
+        logger.warning(f"PDF extraction failed, falling back to raw decode: {e}")
+        return content.decode("utf-8", errors="ignore")
 
 
 @router.get("/linkedin")
 async def get_linkedin(
     user: AuthUser = Depends(get_current_user),
 ):
-    """Get stored LinkedIn analysis."""
+    """Get stored LinkedIn analysis. Returns None when no analysis exists."""
     db = get_supabase()
     try:
         resp = (
@@ -135,22 +151,101 @@ async def get_linkedin(
             .execute()
         )
     except Exception:
-        raise HTTPException(404, "No LinkedIn analysis found. Run an audit first.")
+        return None
     if not resp or not resp.data:
-        raise HTTPException(404, "No LinkedIn analysis found. Run an audit first.")
+        return None
     return resp.data
 
 
 @router.post("/linkedin/audit")
 async def audit_linkedin(
-    req: LinkedInAuditRequest,
+    user: AuthUser = Depends(get_current_user),
+    linkedin_text: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+):
+    """AI LinkedIn profile audit — accepts PDF upload or pasted text."""
+    profile_text = ""
+    source = "text"
+
+    if file and file.filename:
+        content = await file.read()
+        if file.content_type == "application/pdf" or (file.filename and file.filename.lower().endswith(".pdf")):
+            profile_text = _extract_pdf_text(content)
+            source = "pdf"
+        else:
+            profile_text = content.decode("utf-8", errors="ignore")
+            source = "text"
+    elif linkedin_text:
+        profile_text = linkedin_text
+        source = "text"
+    else:
+        raise HTTPException(400, "Provide either linkedin_text or a file upload.")
+
+    if not profile_text.strip():
+        raise HTTPException(400, "Could not extract any text from the provided input.")
+
+    user_context = await coach.build_user_context(user.id)
+    analysis = await pitch_service.audit_linkedin(profile_text, user_context)
+    saved = await pitch_service.save_linkedin(user.id, analysis, profile_text=profile_text, source=source)
+    return {"analysis": saved}
+
+
+class LinkedInChatRequest(BaseModel):
+    messages: list[dict]
+
+
+@router.post("/linkedin/chat")
+async def linkedin_chat(
+    req: LinkedInChatRequest,
     user: AuthUser = Depends(get_current_user),
 ):
-    """AI LinkedIn profile audit."""
+    """Coach chat for LinkedIn profile improvement — SSE streaming."""
+    db = get_supabase()
+
+    # Load existing linkedin analysis for context
+    analysis_text = ""
+    try:
+        resp = (
+            db.table("linkedin_analysis")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        if resp and resp.data:
+            a = resp.data
+            analysis_text = (
+                f"\nProfile text: {(a.get('profile_text') or '')[:3000]}\n"
+                f"Overall: {a.get('overall')}\n"
+                f"Top fixes: {json_mod.dumps(a.get('top_fixes', []))}"
+            )
+    except Exception:
+        pass
+
     user_context = await coach.build_user_context(user.id)
-    analysis = await pitch_service.audit_linkedin(req.linkedin_text, user_context)
-    saved = await pitch_service.save_linkedin(user.id, analysis)
-    return {"analysis": saved}
+
+    # Inject audit context as the first message
+    context_msg = {
+        "role": "user",
+        "content": (
+            f"[CONTEXT — LinkedIn audit results:{analysis_text}]\n\n"
+            f"Help me improve my LinkedIn profile based on the audit above."
+        ),
+    }
+
+    chat_messages = [context_msg] + [
+        {"role": m.get("role", "user"), "content": m.get("content", "")}
+        for m in req.messages
+    ]
+
+    async def event_stream():
+        full_response = ""
+        async for token in coach.coach_stream("linkedin_chat", user_context, chat_messages):
+            full_response += token
+            yield f"event: token\ndata: {json_mod.dumps({'text': token})}\n\n"
+        yield "event: done\ndata: {}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 # --- Salary / Comp ---

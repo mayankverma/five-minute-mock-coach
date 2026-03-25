@@ -48,23 +48,33 @@ class PitchService:
         return resp.data[0]
 
     async def audit_linkedin(self, linkedin_text: str, user_context: dict) -> dict:
-        """AI LinkedIn profile audit."""
+        """AI LinkedIn profile audit — 9-section audit."""
         message = (
-            f"## LinkedIn Profile Content\n{linkedin_text[:4000]}\n\n"
+            f"## LinkedIn Profile Content\n{linkedin_text}\n\n"
             f"## Instructions\n"
-            f"Audit this LinkedIn profile. Return JSON with:\n"
-            f"- overall: overall assessment (1-2 sentences)\n"
-            f"- recruiter_discoverability: how likely recruiters are to find this profile\n"
-            f"- credibility_score: how credible the profile appears (low/medium/high)\n"
-            f"- differentiation_score: how distinctive vs. similar professionals (low/medium/high)\n"
-            f"- top_fixes: ordered list of objects with 'section', 'issue', 'fix'\n"
-            f"- positioning_gaps: where the profile's positioning doesn't match target roles"
+            f"Perform a comprehensive 9-section LinkedIn profile audit. Return JSON with:\n"
+            f"- overall: overall assessment (2-3 sentences)\n"
+            f"- recruiter_discoverability: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
+            f"- credibility_score: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
+            f"- differentiation_score: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
+            f"- headline_assessment: object with 'current', 'assessment', 'recommended', 'rationale'\n"
+            f"- about_assessment: object with 'assessment', 'recommended', 'rationale'\n"
+            f"- experience_assessment: object with 'assessment', 'recommended_rewrite', 'rationale'\n"
+            f"- skills_assessment: object with 'assessment', 'recommended_top_10' (list), 'rationale'\n"
+            f"- photo_banner_assessment: object with 'assessment', 'recommendations'\n"
+            f"- featured_assessment: object with 'assessment', 'recommendations' (list of 2-3)\n"
+            f"- recommendations_assessment: object with 'count_guidance', 'who_to_ask', 'how_to_ask'\n"
+            f"- url_completeness_assessment: object with 'custom_url', 'completeness', 'open_to_work_guidance'\n"
+            f"- content_strategy: object with 'posting_approach', 'post_ideas' (list of 3), 'engagement_tips'\n"
+            f"- top_fixes: ordered list of 5 objects with 'section', 'issue', 'fix', 'severity' ('red'/'amber'/'neutral')\n"
+            f"- positioning_gaps: string describing where profile doesn't match target roles\n"
+            f"- cross_surface_gaps: list of resume vs LinkedIn inconsistencies"
         )
         raw = await self.coach.coach_json("linkedin", user_context, message)
         return json.loads(raw)
 
-    async def save_linkedin(self, user_id: str, analysis: dict) -> dict:
-        """Persist LinkedIn analysis."""
+    async def save_linkedin(self, user_id: str, analysis: dict, profile_text: str = "", source: str = "text") -> dict:
+        """Persist LinkedIn analysis with section-by-section data."""
         db = get_supabase()
         data = {
             "user_id": user_id,
@@ -74,6 +84,18 @@ class PitchService:
             "differentiation_score": analysis.get("differentiation_score"),
             "top_fixes": analysis.get("top_fixes", []),
             "positioning_gaps": analysis.get("positioning_gaps"),
+            "headline_assessment": analysis.get("headline_assessment"),
+            "about_assessment": analysis.get("about_assessment"),
+            "experience_assessment": analysis.get("experience_assessment"),
+            "skills_assessment": analysis.get("skills_assessment"),
+            "photo_banner_assessment": analysis.get("photo_banner_assessment"),
+            "featured_assessment": analysis.get("featured_assessment"),
+            "recommendations_assessment": analysis.get("recommendations_assessment"),
+            "url_completeness_assessment": analysis.get("url_completeness_assessment"),
+            "content_strategy": analysis.get("content_strategy"),
+            "cross_surface_gaps": analysis.get("cross_surface_gaps", []),
+            "profile_text": profile_text,
+            "source": source,
         }
         resp = db.table("linkedin_analysis").upsert(data, on_conflict="user_id").execute()
         return resp.data[0]
