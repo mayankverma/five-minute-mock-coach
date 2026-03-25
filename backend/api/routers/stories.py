@@ -135,6 +135,12 @@ async def create_story(
         return existing_story.data
 
     data = {"user_id": user.id, **story.model_dump(exclude_none=True)}
+
+    # Story seeds (from resume analysis) should not have strength
+    is_seed = story.notes and "[Resume seed]" in story.notes
+    if is_seed:
+        data.pop("strength", None)
+
     resp = db.table("story").insert(data).execute()
     story_row = resp.data[0]
 
