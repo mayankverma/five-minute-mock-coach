@@ -114,8 +114,9 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
   // On mount, fetch existing story titles to detect duplicates
   useEffect(() => {
     api.get('/api/stories').then(({ data }) => {
+      const stories = Array.isArray(data) ? data : data?.stories || [];
       const titles = new Set<string>(
-        (data || []).map((s: { title: string }) => s.title?.toLowerCase().trim()).filter(Boolean)
+        stories.map((s: { title: string }) => s.title?.toLowerCase().trim()).filter(Boolean)
       );
       setExistingTitles(titles);
 
