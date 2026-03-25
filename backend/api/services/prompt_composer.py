@@ -34,6 +34,7 @@ COMMAND_MODULES: dict[str, list[str]] = {
     "linkedin": ["differentiation", "cross_cutting"],
     "linkedin_chat": ["differentiation", "cross_cutting", "linkedin_chat"],
     "resume_chat": ["differentiation", "cross_cutting", "resume_chat"],
+    "outreach_chat": ["differentiation", "cross_cutting", "outreach_chat"],
     "salary": ["cross_cutting"],
     "calibrate": ["calibration", "rubrics"],
     "patterns": ["calibration"],
