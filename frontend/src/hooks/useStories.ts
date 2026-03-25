@@ -41,7 +41,7 @@ async function fetchStories(): Promise<Story[]> {
       primarySkill: s.primary_skill || '',
       secondarySkill: s.secondary_skill || '',
       earnedSecret: s.earned_secret || '',
-      strength: s.strength || 3,
+      strength: s.strength ?? 0,
       uses: s.use_count || 0,
       domain: s.domain || '',
       deployFor: s.deploy_for || '',
