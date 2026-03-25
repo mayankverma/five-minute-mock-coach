@@ -1,6 +1,10 @@
-import { useState } from 'react';
-import { useStories } from '../hooks/useStories';
-import { StoryForm } from '../components/StoryForm';
+import React, { useState, useEffect } from 'react';
+import { useStories, type Story } from '../hooks/useStories';
+import { useStoryGaps, type StoryGap } from '../hooks/useStoryGaps';
+import { useNarrativeIdentity } from '../hooks/useNarrativeIdentity';
+import { useWorkspace } from '../contexts/WorkspaceContext';
+import { StoryBuilder } from '../components/StoryBuilder';
+import api from '../lib/api';
 import './pages.css';
 
 /* ── Inline SVG icons (from reference HTML symbol defs) ── */
@@ -101,11 +105,26 @@ function StrengthBar({ value }: { value: number }) {
 /* ── Page component ── */
 
 export function Storybank() {
-  const { stories, gaps, narrativeIdentity, addStory, isLoading } = useStories();
+  const { stories, addStory, deleteStory, isLoading } = useStories();
+  const { activeWorkspace } = useWorkspace();
+  const { gapAnalysis, isLoading: gapsLoading } = useStoryGaps(activeWorkspace?.id);
+  const { narrative } = useNarrativeIdentity(stories.length);
   const [showForm, setShowForm] = useState(false);
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasResume, setHasResume] = useState(false);
+  const [gapContext, setGapContext] = useState<StoryGap | null>(null);
+  const [reframeSource, setReframeSource] = useState<string | undefined>(undefined);
+  const showBuilder = showForm || editingStory !== null;
+
+  useEffect(() => {
+    api.get('/api/materials/resume').then(({ data }) => {
+      setHasResume(!!(data && data.id));
+    }).catch(() => {});
+  }, []);
 
   const storyCount = stories.length;
-  const gapCount = gaps.length;
+  const gapCount = gapAnalysis?.gaps?.length || 0;
 
   if (isLoading) {
     return (
@@ -115,47 +134,87 @@ export function Storybank() {
 
   return (
     <div>
-      {/* ── Header row ── */}
-      <div
-        className="page-header"
-        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
-      >
-        <div>
-          <h1 className="page-title">
-            <BookIcon /> Storybank
-          </h1>
-          <p className="page-subtitle">
-            Your interview-ready STAR stories. {storyCount} stories built, {gapCount} gaps
-            identified.
-          </p>
-        </div>
-        <button
-          className="btn btn-primary"
-          onClick={() => setShowForm((v) => !v)}
+      {/* ── Header row (hidden when builder is open) ── */}
+      {!showBuilder && (
+        <div
+          className="page-header"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
         >
-          <PlusIcon /> Add Story
-        </button>
-      </div>
-
-      {/* ── Story form (toggled) ── */}
-      {showForm && (
-        <StoryForm
-          onSave={(data) => {
-            addStory({
-              title: data.title,
-              primarySkill: data.primarySkill,
-              secondarySkill: data.secondarySkill,
-              earnedSecret: data.earnedSecret,
-              strength: data.strength,
-            });
-            setShowForm(false);
-          }}
-          onCancel={() => setShowForm(false)}
-        />
+          <div>
+            <h1 className="page-title">
+              <BookIcon /> Storybank
+            </h1>
+            <p className="page-subtitle">
+              Your interview-ready STAR stories. {storyCount} stories built{gapCount > 0 ? `, ${gapCount} gaps identified` : ''}.
+              {activeWorkspace ? ` Context: ${activeWorkspace.company_name}` : ''}
+            </p>
+          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setShowForm((v) => !v)}
+          >
+            <PlusIcon /> Add Story
+          </button>
+        </div>
       )}
 
-      {/* ── Story table or empty state ── */}
-      {stories.length === 0 ? (
+      {/* ── Story builder (split-pane chat + card) ── */}
+      {showBuilder && (
+        <>
+        <button
+          className="btn btn-outline btn-sm"
+          style={{ marginBottom: 10 }}
+          onClick={() => { setShowForm(false); setEditingStory(null); }}
+        >
+          &larr; Back to Stories
+        </button>
+        <StoryBuilder
+          initial={editingStory ? {
+            title: editingStory.title,
+            situation: editingStory.situation,
+            task: editingStory.task,
+            action: editingStory.action,
+            result: editingStory.result,
+            primarySkill: editingStory.primarySkill,
+            secondarySkill: editingStory.secondarySkill,
+            earnedSecret: editingStory.earnedSecret,
+            strength: editingStory.strength,
+            domain: editingStory.domain,
+            deployFor: editingStory.deployFor,
+          } : undefined}
+          storyId={editingStory?.fullId}
+          storyCount={stories.length}
+          hasResume={hasResume}
+          gapContext={gapContext ? {
+            competency: gapContext.competency,
+            recommendation: gapContext.recommendation,
+            handling_pattern: gapContext.handling_pattern,
+            sourceStoryTitle: gapContext.closest_story?.title,
+          } : undefined}
+          reframeSource={reframeSource}
+          onSave={(data) => {
+            addStory(data);
+            setShowForm(false);
+            setEditingStory(null);
+            setGapContext(null);
+            setReframeSource(undefined);
+          }}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingStory(null);
+            setGapContext(null);
+            setReframeSource(undefined);
+          }}
+          onDelete={editingStory ? () => {
+            deleteStory(editingStory.fullId);
+            setEditingStory(null);
+          } : undefined}
+        />
+        </>
+      )}
+
+      {/* ── Story table or empty state (hidden when builder is open) ── */}
+      {showBuilder ? null : stories.length === 0 ? (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="card-body" style={{ textAlign: 'center', padding: '48px 24px' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>
@@ -177,62 +236,251 @@ export function Storybank() {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Updated</th>
                     <th>Title</th>
                     <th>Primary Skill</th>
-                    <th>Secondary Skill</th>
-                    <th>Earned Secret</th>
                     <th>Strength</th>
+                    {activeWorkspace && <th>Fit</th>}
                     <th>Uses</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {stories.map((s) => (
-                    <tr key={s.id}>
-                      <td><span className="story-id">{s.id}</span></td>
-                      <td><span className="story-title">{s.title}</span></td>
-                      <td>{s.primarySkill}</td>
-                      <td>{s.secondarySkill}</td>
-                      <td>{s.earnedSecret}</td>
-                      <td><StrengthBar value={s.strength} /></td>
-                      <td>{s.uses}</td>
-                      <td><button className="btn btn-outline btn-sm">{s.status === 'view' ? 'View' : 'Improve'}</button></td>
-                    </tr>
+                    <React.Fragment key={s.id}>
+                      <tr
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setExpandedId(expandedId === s.fullId ? null : s.fullId)}
+                      >
+                        <td><span className="story-date">{s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : '—'}</span></td>
+                        <td><span className="story-title">{s.title}</span></td>
+                        <td>{s.primarySkill}</td>
+                        <td><StrengthBar value={s.strength} /></td>
+                        {activeWorkspace && gapAnalysis?.mapped_stories && (
+                          <td>
+                            {(() => {
+                              const fits = gapAnalysis.mapped_stories.filter(
+                                m => m.title?.toLowerCase().includes(s.title.toLowerCase().slice(0, 20)) || m.story_id === s.fullId
+                              );
+                              const best = fits.find(f => f.fit_level === 'strong') || fits.find(f => f.fit_level === 'workable') || fits[0];
+                              if (!best) return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>;
+                              const colors = { strong: { bg: '#dcfce7', text: '#166534' }, workable: { bg: '#fef3c7', text: '#92400e' }, stretch: { bg: '#f3f4f6', text: '#6b7280' } };
+                              const c = colors[best.fit_level] || colors.stretch;
+                              return (
+                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 4, background: c.bg, color: c.text }}>
+                                  {best.fit_level.charAt(0).toUpperCase() + best.fit_level.slice(1)}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                        )}
+                        <td>{s.uses}</td>
+                        <td>
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                            {expandedId === s.fullId ? '▲' : '▼'}
+                          </span>
+                        </td>
+                      </tr>
+                      {expandedId === s.fullId && (
+                        <tr>
+                          <td colSpan={activeWorkspace ? 7 : 6} style={{ padding: '16px 20px', background: 'var(--bg-muted, #f9f8f6)' }}>
+                            {s.deployFor && (
+                              <div style={{ fontSize: 13, marginBottom: 12 }}>
+                                <strong>Use this story when asked about:</strong>
+                                <ul style={{ color: 'var(--text-secondary)', margin: '6px 0 0', paddingLeft: 20, listStyle: 'disc' }}>
+                                  {s.deployFor.split(';').map((item, i) => {
+                                    const text = item.trim();
+                                    return <li key={i} style={{ marginBottom: 3 }}>{text.charAt(0).toUpperCase() + text.slice(1)}</li>;
+                                  })}
+                                </ul>
+                              </div>
+                            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 13, lineHeight: 1.6 }}>
+                              <div>
+                                <strong>Situation</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.situation || '—'}</p>
+                                <strong>Task</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.task || '—'}</p>
+                              </div>
+                              <div>
+                                <strong>Action</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.action || '—'}</p>
+                                <strong>Result</strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '4px 0 12px' }}>{s.result || '—'}</p>
+                              </div>
+                            </div>
+                            {s.earnedSecret && (
+                              <div style={{ fontSize: 13, marginTop: 12, padding: '12px 14px', background: 'var(--bg-card, #fff)', borderRadius: 8, border: '1px solid var(--border-light, #e8e5df)' }}>
+                                <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span style={{ fontSize: 15 }}>&#128161;</span> Earned Secret
+                                </strong>
+                                <p style={{ color: 'var(--text-secondary)', margin: '6px 0 4px', lineHeight: 1.6 }}>{s.earnedSecret}</p>
+                                <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: 11, fontStyle: 'italic' }}>
+                                  This is the unique insight only you learned from this experience. Weave it into your answer to stand out from other candidates.
+                                </p>
+                              </div>
+                            )}
+                            <div style={{ marginTop: 14, display: 'flex', gap: 8 }}>
+                              <button className="btn btn-primary btn-sm" onClick={(e) => { e.stopPropagation(); setEditingStory(s); }}>
+                                Improve with Coach
+                              </button>
+                              <button
+                                className="btn btn-outline btn-sm"
+                                style={{ color: 'var(--text-danger, #c53030)' }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (window.confirm('Delete this story? This cannot be undone.')) {
+                                    deleteStory(s.fullId);
+                                    setExpandedId(null);
+                                  }
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* ── Gap Analysis + Narrative Identity (only show when stories exist) ── */}
-          {gaps.length > 0 && (
-            <div className="card-grid card-grid-2">
-              <div className="card">
-                <div className="card-header"><span className="card-title"><SearchIcon /> Gap Analysis</span></div>
-                <div className="card-body">
-                  <div className="prep-list">
-                    {gaps.map((gap, i) => (
-                      <li key={i}>
-                        <span className={`tag ${gap.severity === 'missing' ? 'tag-red' : 'tag-amber'}`} style={{ fontSize: 10 }}>
-                          {gap.severity === 'missing' ? 'Missing' : 'Weak'}
-                        </span>{' '}
-                        {gap.description}
-                      </li>
-                    ))}
-                  </div>
-                </div>
+          {/* ── Gap Analysis ── */}
+          {gapsLoading && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-body" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>
+                Analyzing your story coverage...
               </div>
-              {narrativeIdentity && (
-                <div className="card">
-                  <div className="card-header"><span className="card-title"><CompassIcon /> Narrative Identity</span></div>
-                  <div className="card-body">
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-                      <strong>Core themes:</strong> {narrativeIdentity}
-                    </p>
-                  </div>
+            </div>
+          )}
+          {!gapsLoading && gapAnalysis && gapAnalysis.gaps.length > 0 && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="card-title"><SearchIcon /> {gapAnalysis.mode === 'workspace' ? 'Gaps for This Role' : 'Story Coverage (Recommended)'}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  Coverage: {gapAnalysis.coverage_score}/10
+                </span>
+              </div>
+              <div className="card-body" style={{ padding: 0 }}>
+                <table className="data-table">
+                  <tbody>
+                    {gapAnalysis.gaps.map((gap, i) => (
+                      <tr key={i}>
+                        <td style={{ width: 90 }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                            padding: '2px 6px', borderRadius: 4,
+                            background: gap.severity === 'critical' ? '#fee2e2' : gap.severity === 'important' ? '#fef3c7' : '#f3f4f6',
+                            color: gap.severity === 'critical' ? '#991b1b' : gap.severity === 'important' ? '#92400e' : '#6b7280',
+                          }}>
+                            {gap.severity === 'critical' ? 'Critical' : gap.severity === 'important' ? 'Important' : 'Nice to have'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: 13 }}>
+                            {gap.competency.charAt(0).toUpperCase() + gap.competency.slice(1)}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                            {gap.recommendation}
+                          </div>
+                        </td>
+                        <td style={{ width: 120, textAlign: 'right' }}>
+                          {gap.handling_pattern === 'reframe_existing' && gap.closest_story ? (
+                            <button
+                              className="btn btn-outline btn-sm"
+                              onClick={() => {
+                                // Find the source story to pass its content as context
+                                const match = stories.find(s =>
+                                  s.fullId === gap.closest_story?.id ||
+                                  s.title.toLowerCase().includes(gap.closest_story?.title?.toLowerCase().slice(0, 20) || '')
+                                );
+                                if (match) {
+                                  setReframeSource([
+                                    `I want to reframe this existing story for ${gap.competency}. Here is the original story:`,
+                                    `Title: ${match.title}`,
+                                    match.situation ? `Situation: ${match.situation}` : '',
+                                    match.task ? `Task: ${match.task}` : '',
+                                    match.action ? `Action: ${match.action}` : '',
+                                    match.result ? `Result: ${match.result}` : '',
+                                    match.primarySkill ? `Primary Skill: ${match.primarySkill}` : '',
+                                    match.earnedSecret ? `Earned Secret: ${match.earnedSecret}` : '',
+                                  ].filter(Boolean).join('\n'));
+                                }
+                                setGapContext(gap);
+                                setShowForm(true);
+                              }}
+                            >
+                              Reframe
+                            </button>
+                          ) : (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => {
+                                setGapContext(gap);
+                                setShowForm(true);
+                              }}
+                            >
+                              Build Story
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!activeWorkspace && (
+                <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-light)', fontSize: 12, color: 'var(--text-muted)' }}>
+                  Add a target job to see which gaps matter most for you
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── Narrative Identity ── */}
+          {narrative && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-header">
+                <span className="card-title"><CompassIcon /> Narrative Identity</span>
+              </div>
+              <div className="card-body" style={{ fontSize: 13, lineHeight: 1.7 }}>
+                {narrative.core_themes?.length > 0 && (
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Core themes:</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
+                      {narrative.core_themes.map((t, i) => (
+                        <li key={i} style={{ marginBottom: 4 }}>
+                          <strong>{t.theme}</strong>
+                          <span style={{ color: 'var(--text-secondary)' }}> — {t.description}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {narrative.sharpest_edge && (
+                  <div style={{ padding: '10px 14px', background: 'var(--primary-lighter)', borderRadius: 8, marginBottom: 12 }}>
+                    <strong>Sharpest edge:</strong>
+                    <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>{narrative.sharpest_edge}</p>
+                  </div>
+                )}
+                {narrative.orphan_stories?.length > 0 && (
+                  <div style={{ marginBottom: 8 }}>
+                    {narrative.orphan_stories.map((o, i) => (
+                      <div key={i} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>
+                        Orphan: "{o.title}" — {o.suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {narrative.how_to_use && (
+                  <p style={{ color: 'var(--text-muted)', fontSize: 12, fontStyle: 'italic', margin: 0 }}>
+                    {narrative.how_to_use}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </>

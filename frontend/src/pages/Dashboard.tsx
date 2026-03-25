@@ -375,10 +375,10 @@ function GeneralDashboard() {
           <svg viewBox="0 0 18 18"><polygon points="10 1 3 10 9 10 8 17 15 8 9 8" /></svg>
         </div>
         <div className="action-text">
-          <div className="action-title">Build Your Storybank</div>
-          <div className="action-desc">You have 8 story seeds from your resume. Stories are the foundation for everything.</div>
+          <div className="action-title">Upload Your Resume</div>
+          <div className="action-desc">Upload your resume so we can identify story seeds from your experience. Stories are the foundation for everything.</div>
         </div>
-        <button className="btn btn-primary btn-sm">Start Stories</button>
+        <button className="btn btn-primary btn-sm" onClick={() => window.location.href = '/materials'}>Upload Resume</button>
       </div>
     </div>
   );
