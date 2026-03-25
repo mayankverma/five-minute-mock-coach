@@ -4,6 +4,67 @@ import { useResumeChat } from '../hooks/useResumeChat';
 import type { ResumeSection, ResumeAnalysis } from '../hooks/useResume';
 import './resume-page.css';
 
+/* -- Markdown rendering -- */
+function renderInline(text: string) {
+  // Handle **bold**, *italic*, and `code`
+  return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/).map((seg, k) => {
+    if (seg.startsWith('**') && seg.endsWith('**')) return <strong key={k}>{seg.slice(2, -2)}</strong>;
+    if (seg.startsWith('*') && seg.endsWith('*')) return <em key={k}>{seg.slice(1, -1)}</em>;
+    if (seg.startsWith('`') && seg.endsWith('`')) return <code key={k} style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: 3, fontSize: '0.9em' }}>{seg.slice(1, -1)}</code>;
+    return <span key={k}>{seg}</span>;
+  });
+}
+
+function renderMarkdown(text: string) {
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: string[] = [];
+  let listOrdered = false;
+
+  const flushList = () => {
+    if (listItems.length === 0) return;
+    const Tag = listOrdered ? 'ol' : 'ul';
+    elements.push(
+      <Tag key={elements.length} style={{ margin: '6px 0', paddingLeft: 20 }}>
+        {listItems.map((item, i) => <li key={i} style={{ marginBottom: 3 }}>{renderInline(item)}</li>)}
+      </Tag>
+    );
+    listItems = [];
+  };
+
+  for (let j = 0; j < lines.length; j++) {
+    const line = lines[j];
+
+    if (line.startsWith('### ')) {
+      flushList();
+      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 13, marginTop: 10, marginBottom: 4 }}>{renderInline(line.slice(4))}</div>);
+    } else if (line.startsWith('## ')) {
+      flushList();
+      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 14, marginTop: 12, marginBottom: 4 }}>{renderInline(line.slice(3))}</div>);
+    } else if (line.startsWith('> ')) {
+      flushList();
+      elements.push(<blockquote key={j} style={{ borderLeft: '3px solid var(--border-light)', paddingLeft: 12, margin: '6px 0', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{renderInline(line.slice(2))}</blockquote>);
+    } else if (line.match(/^[-*] /)) {
+      if (listOrdered) flushList();
+      listOrdered = false;
+      listItems.push(line.slice(2));
+    } else if (line.match(/^\d+\.\s/)) {
+      if (!listOrdered && listItems.length) flushList();
+      listOrdered = true;
+      listItems.push(line.replace(/^\d+\.\s/, ''));
+    } else {
+      flushList();
+      if (line.trim() === '') {
+        elements.push(<div key={j} style={{ height: 8 }} />);
+      } else {
+        elements.push(<div key={j}>{renderInline(line)}</div>);
+      }
+    }
+  }
+  flushList();
+  return <>{elements}</>;
+}
+
 /* -- Icons -- */
 function UploadIcon() {
   return (
@@ -181,7 +242,10 @@ function ChatPanel({ resumeId, suggestions }: { resumeId: string; suggestions: s
 
         {messages.map((msg, i) => (
           <div key={i} className={`rc-msg rc-msg-${msg.role}`}>
-            <div className="rc-msg-bubble">{msg.text}{msg.role === 'coach' && isStreaming && i === messages.length - 1 && <span className="rc-cursor" />}</div>
+            <div className="rc-msg-bubble">
+              {msg.role === 'coach' ? renderMarkdown(msg.text) : msg.text}
+              {msg.role === 'coach' && isStreaming && i === messages.length - 1 && <span className="rc-cursor" />}
+            </div>
           </div>
         ))}
         <div ref={messagesEndRef} />

@@ -154,8 +154,9 @@
 .rc-msg-coach { justify-content: flex-start; }
 .rc-msg-bubble {
   max-width: 85%; padding: 8px 12px; border-radius: 12px;
-  font-size: 13px; line-height: 1.6; white-space: pre-wrap;
+  font-size: 13px; line-height: 1.6;
 }
+.rc-msg-user .rc-msg-bubble { white-space: pre-wrap; }
 .rc-msg-user .rc-msg-bubble {
   background: var(--primary); color: white;
   border-bottom-right-radius: 4px;
