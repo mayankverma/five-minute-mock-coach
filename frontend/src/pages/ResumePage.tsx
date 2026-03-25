@@ -117,11 +117,11 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
         title: seed.title || seed.source_bullet,
         notes: `[Resume seed] ${seed.source_bullet || seed.title}. This story needs STAR details — use Improve with Coach to develop it.`,
         primary_skill: seed.potential_skill || undefined,
-        strength: 0,
       });
       setAddedSeeds(prev => new Set(prev).add(index));
-    } catch {
-      // Show error inline
+    } catch (err) {
+      console.error('Failed to add story seed:', err);
+      // Brief visual feedback — button stays enabled so user can retry
     } finally {
       setAddingSeeds(prev => { const s = new Set(prev); s.delete(index); return s; });
     }
