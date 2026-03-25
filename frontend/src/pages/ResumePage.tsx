@@ -109,8 +109,35 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
   const [expanded, setExpanded] = useState(true);
   const [addedSeeds, setAddedSeeds] = useState<Set<number>>(new Set());
   const [addingSeeds, setAddingSeeds] = useState<Set<number>>(new Set());
+  const [existingTitles, setExistingTitles] = useState<Set<string>>(new Set());
+
+  // On mount, fetch existing story titles to detect duplicates
+  useEffect(() => {
+    api.get('/api/stories').then(({ data }) => {
+      const titles = new Set<string>(
+        (data || []).map((s: { title: string }) => s.title?.toLowerCase().trim()).filter(Boolean)
+      );
+      setExistingTitles(titles);
+
+      // Mark seeds that already exist as "added"
+      if (analysis?.story_seeds) {
+        const alreadyAdded = new Set<number>();
+        analysis.story_seeds.forEach((seed, i) => {
+          const seedTitle = (seed.title || seed.source_bullet || '').toLowerCase().trim();
+          if (seedTitle && titles.has(seedTitle)) alreadyAdded.add(i);
+        });
+        if (alreadyAdded.size > 0) setAddedSeeds(alreadyAdded);
+      }
+    }).catch(() => {});
+  }, [analysis]);
 
   async function addToStorybank(seed: { title: string; source_bullet: string; potential_skill: string }, index: number) {
+    const seedTitle = (seed.title || seed.source_bullet || '').toLowerCase().trim();
+    if (existingTitles.has(seedTitle)) {
+      setAddedSeeds(prev => new Set(prev).add(index));
+      return;
+    }
+
     setAddingSeeds(prev => new Set(prev).add(index));
     try {
       await api.post('/api/stories', {
@@ -119,9 +146,9 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
         primary_skill: seed.potential_skill || undefined,
       });
       setAddedSeeds(prev => new Set(prev).add(index));
+      setExistingTitles(prev => new Set(prev).add(seedTitle));
     } catch (err) {
       console.error('Failed to add story seed:', err);
-      // Brief visual feedback — button stays enabled so user can retry
     } finally {
       setAddingSeeds(prev => { const s = new Set(prev); s.delete(index); return s; });
     }
