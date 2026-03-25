@@ -5,7 +5,7 @@
 CREATE TABLE resume (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    job_id UUID REFERENCES job(id) ON DELETE CASCADE,
+    job_id UUID REFERENCES job_workspace(id) ON DELETE CASCADE,
     name TEXT NOT NULL DEFAULT 'Master Resume',
     original_file_name TEXT,
     raw_text TEXT,

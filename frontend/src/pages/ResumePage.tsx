@@ -27,9 +27,21 @@ function AnalysisCard({ analysis }: { analysis: ResumeAnalysis }) {
     { label: 'Polish', value: analysis.consistency_polish },
   ];
 
-  function dimClass(val: string | null) {
-    if (!val) return '';
-    const v = val.toLowerCase();
+  function dimValue(raw: any): string {
+    if (!raw) return 'N/A';
+    if (typeof raw === 'object' && raw.status) return raw.status;
+    if (typeof raw === 'string') {
+      // Try parsing JSON strings like '{"status":"ATS-Broken","rationale":"..."}'
+      if (raw.startsWith('{')) {
+        try { const parsed = JSON.parse(raw); return parsed.status || raw; } catch { /* fall through */ }
+      }
+      return raw.split(' ')[0];
+    }
+    return 'N/A';
+  }
+
+  function dimClass(val: any) {
+    const v = dimValue(val).toLowerCase();
     if (v.includes('strong') || v.includes('ready') || v.includes('aligned')) return 'strong';
     if (v.includes('moderate') || v.includes('risky')) return 'moderate';
     if (v.includes('weak') || v.includes('broken') || v.includes('mismatched')) return 'weak';
@@ -51,7 +63,7 @@ function AnalysisCard({ analysis }: { analysis: ResumeAnalysis }) {
           <div key={d.label} className="ra-dim">
             <span className="ra-dim-label">{d.label}</span>
             <span className={`ra-dim-value ${dimClass(d.value)}`}>
-              {d.value ? d.value.split(' ')[0] : 'N/A'}
+              {dimValue(d.value)}
             </span>
           </div>
         ))}
