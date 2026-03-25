@@ -207,25 +207,54 @@ function ChatPanel({ suggestions }: { suggestions: string[] }) {
 
 /* -- Audit Section Cards -- */
 
+function parseDimValue(raw: any): { rating: string; rationale: string } {
+  if (!raw) return { rating: 'N/A', rationale: '' };
+  if (typeof raw === 'object' && raw.rating) return { rating: raw.rating, rationale: raw.rationale || '' };
+  if (typeof raw === 'string') {
+    if (raw.startsWith('{')) {
+      try { const p = JSON.parse(raw); return { rating: p.rating || p.status || raw, rationale: p.rationale || '' }; } catch { /* fall through */ }
+    }
+    return { rating: raw.split(' ')[0], rationale: '' };
+  }
+  return { rating: String(raw), rationale: '' };
+}
+
+function dimColorClass(rating: string): string {
+  const r = rating.toLowerCase();
+  if (r.includes('strong') || r.includes('ready')) return 'li-dim-strong';
+  if (r.includes('moderate') || r.includes('risky')) return 'li-dim-moderate';
+  if (r.includes('weak') || r.includes('broken')) return 'li-dim-weak';
+  return '';
+}
+
 function OverallSection({ analysis }: { analysis: LinkedInAnalysis }) {
   const dims = [
-    { label: 'Recruiter Discoverability', value: analysis.recruiter_discoverability },
-    { label: 'Credibility', value: analysis.credibility_score },
-    { label: 'Differentiation', value: analysis.differentiation_score },
+    { label: 'Recruiter Discoverability', ...parseDimValue(analysis.recruiter_discoverability) },
+    { label: 'Credibility', ...parseDimValue(analysis.credibility_score) },
+    { label: 'Differentiation', ...parseDimValue(analysis.differentiation_score) },
   ];
 
   return (
     <div className="li-section">
       <div className="li-section-header">Overall Score</div>
-      <div className="li-overall">{analysis.overall}</div>
+      <div className="li-overall">{safeText(analysis.overall)}</div>
       <div className="li-dims">
         {dims.map((d) => (
           <div key={d.label} className="li-dim">
-            <span className="li-dim-label">{d.label}:</span>
-            <span className="li-dim-value">{d.value || 'N/A'}</span>
+            <span className="li-dim-label">{d.label}</span>
+            <span className={`li-dim-badge ${dimColorClass(d.rating)}`}>{d.rating}</span>
           </div>
         ))}
       </div>
+      {dims.some(d => d.rationale) && (
+        <div className="li-dim-rationales">
+          {dims.filter(d => d.rationale).map(d => (
+            <div key={d.label} className="li-dim-rationale-item">
+              <strong>{d.label}:</strong> {d.rationale}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
