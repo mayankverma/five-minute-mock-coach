@@ -1,0 +1,247 @@
+/* LinkedIn Page */
+.linkedin-page { display: flex; flex-direction: column; height: calc(100vh - var(--topbar-h) - 48px); }
+
+/* Header */
+.linkedin-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; flex-shrink: 0;
+}
+.linkedin-header h1 { font-size: 18px; font-weight: 700; }
+
+/* Upload area (empty state) */
+.linkedin-upload {
+  flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px;
+}
+.linkedin-upload-inner {
+  display: flex; align-items: stretch; gap: 0; max-width: 720px; width: 100%;
+}
+
+/* PDF dropzone (left side) */
+.linkedin-dropzone {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  border: 2px dashed var(--border-light); border-radius: var(--radius-md);
+  background: var(--card); cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  padding: 32px 24px; text-align: center;
+}
+.linkedin-dropzone:hover,
+.linkedin-dropzone.dragging { border-color: var(--primary); background: rgba(74, 158, 143, 0.04); }
+.linkedin-dropzone-icon { width: 48px; height: 48px; margin: 0 auto 12px; color: var(--text-muted); }
+.linkedin-dropzone-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.linkedin-dropzone-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
+.linkedin-dropzone-hint { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+/* "or" divider */
+.linkedin-or {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 20px; color: var(--text-muted); font-size: 13px; font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Text paste (right side) */
+.linkedin-paste {
+  flex: 1; display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--border-light);
+  border-radius: var(--radius-md); padding: 24px;
+}
+.linkedin-paste-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.linkedin-paste-textarea {
+  flex: 1; min-height: 140px; font-size: 13px; padding: 12px;
+  border: 1px solid var(--border-light); border-radius: var(--radius-sm);
+  resize: vertical; font-family: var(--ff-body); color: var(--text);
+  background: var(--bg); line-height: 1.6;
+}
+.linkedin-paste-textarea:focus { outline: none; border-color: var(--primary); }
+.linkedin-paste-btn { margin-top: 12px; align-self: flex-start; }
+
+/* Auditing spinner */
+.linkedin-auditing {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+}
+.linkedin-auditing-inner { text-align: center; }
+.linkedin-auditing-spinner {
+  width: 40px; height: 40px; border: 3px solid var(--border-light);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: li-spin 0.8s linear infinite; margin: 0 auto 16px;
+}
+@keyframes li-spin { to { transform: rotate(360deg); } }
+.linkedin-auditing-text { font-size: 14px; color: var(--text-muted); }
+
+/* Split pane layout */
+.linkedin-split { flex: 1; display: flex; gap: 0; min-height: 0; overflow: hidden; }
+
+/* Left panel — scrollable audit sections */
+.linkedin-left-panel {
+  flex: 1; overflow-y: auto; padding: 20px; min-width: 0;
+  border-right: 1px solid var(--border-light);
+}
+
+/* Right panel — chat */
+.linkedin-chat-panel {
+  width: 420px; flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--card);
+}
+
+/* Audit section card */
+.li-section {
+  background: var(--card); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: 16px; margin-bottom: 12px;
+}
+.li-section-header {
+  font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px;
+}
+.li-section-assessment {
+  font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 8px;
+}
+.li-section-current {
+  font-size: 12px; color: var(--text-muted); font-style: italic;
+  border-left: 3px solid var(--border-light); padding-left: 12px;
+  margin: 8px 0; line-height: 1.5;
+}
+.li-section-current::before { content: 'Current: '; font-weight: 600; font-style: normal; }
+.li-section-recommended {
+  font-size: 12px; color: var(--primary); background: rgba(74, 158, 143, 0.06);
+  border-left: 3px solid var(--primary); padding: 8px 12px;
+  margin: 8px 0; line-height: 1.5; border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+}
+.li-section-recommended::before { content: 'Recommended: '; font-weight: 600; }
+.li-section-rationale {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 6px;
+}
+.li-section-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 4px;
+}
+.li-section-text { font-size: 12px; color: var(--text); line-height: 1.6; }
+
+/* Dimension score display */
+.li-dims { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 16px; }
+.li-dim { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.li-dim-label { color: var(--text-muted); }
+.li-dim-value { font-weight: 600; color: var(--text); }
+
+/* Overall score card */
+.li-overall {
+  font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 8px;
+}
+
+/* Top fixes */
+.li-fixes-title {
+  font-size: 12px; font-weight: 600; text-transform: uppercase;
+  color: var(--text-muted); letter-spacing: 0.5px; margin-bottom: 8px;
+}
+.li-fix { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+.li-fix-severity {
+  font-size: 10px; font-weight: 600; padding: 2px 6px;
+  border-radius: var(--radius-xs); flex-shrink: 0; margin-top: 1px;
+}
+.li-fix-severity.red { background: #fde8e8; color: #c0392b; }
+.li-fix-severity.amber { background: #fef3cd; color: #856404; }
+.li-fix-severity.green { background: #d4edda; color: #155724; }
+.li-fix-severity.neutral { background: var(--bg); color: var(--text-muted); }
+.li-fix-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+.li-fix-section { font-weight: 600; }
+
+/* Skills list */
+.li-skill-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.li-skill-tag {
+  font-size: 11px; padding: 2px 8px; background: var(--bg);
+  border-radius: var(--radius-xs); color: var(--text-secondary);
+}
+
+/* Post ideas */
+.li-post-ideas { list-style: disc; padding-left: 18px; margin-top: 6px; }
+.li-post-ideas li { font-size: 12px; color: var(--text); line-height: 1.6; margin-bottom: 4px; }
+
+/* Recommendations (featured section) */
+.li-rec-list { list-style: disc; padding-left: 18px; margin-top: 6px; }
+.li-rec-list li { font-size: 12px; color: var(--text); line-height: 1.6; margin-bottom: 4px; }
+
+/* Coach chat panel — mirrors rc-* classes */
+.lc-chat-panel {
+  display: flex; flex-direction: column; height: 100%;
+}
+.lc-chat-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.lc-messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.lc-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; flex: 1; text-align: center; padding: 20px;
+}
+.lc-msg { display: flex; }
+.lc-msg-user { justify-content: flex-end; }
+.lc-msg-coach { justify-content: flex-start; }
+.lc-msg-bubble {
+  max-width: 85%; padding: 8px 12px; border-radius: 12px;
+  font-size: 13px; line-height: 1.6;
+}
+.lc-msg-user .lc-msg-bubble { white-space: pre-wrap; }
+.lc-msg-user .lc-msg-bubble {
+  background: var(--primary); color: white;
+  border-bottom-right-radius: 4px;
+}
+.lc-msg-coach .lc-msg-bubble {
+  background: var(--bg); color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+.lc-cursor {
+  display: inline-block; width: 6px; height: 14px;
+  background: var(--primary); margin-left: 2px;
+  animation: lc-blink 0.8s infinite;
+}
+@keyframes lc-blink { 50% { opacity: 0; } }
+
+/* Suggestion chips */
+.lc-suggestions {
+  display: flex; flex-wrap: wrap; gap: 6px; justify-content: center;
+}
+.lc-suggestion-chip {
+  font-size: 11px; padding: 6px 12px; border: 1px solid var(--border-light);
+  border-radius: 16px; background: var(--card); color: var(--text-secondary);
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  text-align: left; line-height: 1.4;
+}
+.lc-suggestion-chip:hover {
+  border-color: var(--primary); background: rgba(74, 158, 143, 0.04);
+  color: var(--primary);
+}
+
+/* Chat input */
+.lc-input-area {
+  padding: 12px 16px; border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.lc-input-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.lc-input {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); font-size: 13px; font-family: var(--ff-body);
+  color: var(--text); background: var(--bg);
+}
+.lc-input:focus { outline: none; border-color: var(--primary); }
+.lc-input:disabled { opacity: 0.6; }
+.lc-send-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  background: var(--primary); color: white; border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity 0.2s;
+}
+.lc-send-btn:hover { opacity: 0.9; }
+.lc-send-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .linkedin-chat-panel { width: 340px; }
+  .linkedin-upload-inner { flex-direction: column; }
+  .linkedin-or { padding: 12px 0; }
+}
+@media (max-width: 768px) {
+  .linkedin-split { flex-direction: column; }
+  .linkedin-left-panel { border-right: none; border-bottom: 1px solid var(--border-light); }
+  .linkedin-chat-panel { width: 100%; height: 400px; border-left: none; border-top: 1px solid var(--border-light); }
+}
