@@ -16,7 +16,7 @@ class ResumeService:
     async def analyze_resume(self, resume_text: str, user_context: dict) -> dict:
         """Analyze a resume and return structured feedback."""
         message = (
-            f"## Resume Content\n{resume_text[:5000]}\n\n"
+            f"## Resume Content\n{resume_text}\n\n"
             f"## Instructions\n"
             f"Analyze this resume across 8 dimensions. Return JSON with:\n"
             f"- overall_grade: letter grade A through D\n"

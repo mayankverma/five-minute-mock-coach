@@ -16,7 +16,7 @@ class ResumeParser:
         Returns a list of section dicts with keys: section_type, sort_order, content.
         """
         message = (
-            f"## Resume Content\n{resume_text[:6000]}\n\n"
+            f"## Resume Content\n{resume_text}\n\n"
             f"## Instructions\n"
             f"Parse this resume into structured sections. Return JSON with a "
             f"'sections' array where each section has:\n"
