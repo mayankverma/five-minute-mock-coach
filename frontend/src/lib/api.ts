@@ -10,10 +10,14 @@ const api = axios.create({
 // Attach Supabase JWT to every request
 api.interceptors.request.use(async (config) => {
   // Try getSession first (preferred)
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
-    return config;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      config.headers.Authorization = `Bearer ${session.access_token}`;
+      return config;
+    }
+  } catch {
+    // getSession failed — fall through to localStorage
   }
 
   // Fallback: read directly from localStorage (handles race conditions)
