@@ -101,17 +101,52 @@ function AnalysisCard({ analysis }: { analysis: ResumeAnalysis }) {
 }
 
 /* -- Builder Section -- */
-function BuilderSection({ section }: { section: ResumeSection }) {
+function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (sectionId: string, content: Record<string, any>) => void }) {
   const { content, section_type } = section;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(content);
+
+  function startEdit() {
+    setDraft(content);
+    setEditing(true);
+  }
+
+  function save() {
+    onSave(section.id, draft);
+    setEditing(false);
+  }
+
+  function cancel() {
+    setDraft(content);
+    setEditing(false);
+  }
+
+  const editButtons = editing ? (
+    <div style={{ display: 'flex', gap: 6 }}>
+      <button className="rb-section-edit" style={{ color: 'var(--primary)' }} onClick={save}>save</button>
+      <button className="rb-section-edit" onClick={cancel}>cancel</button>
+    </div>
+  ) : (
+    <button className="rb-section-edit" onClick={startEdit}>edit</button>
+  );
 
   if (section_type === 'summary') {
     return (
       <div className="rb-section">
         <div className="rb-section-header">
           <span className="rb-section-type">Summary</span>
-          <button className="rb-section-edit">edit</button>
+          {editButtons}
         </div>
-        <p className="rb-text">{content.text}</p>
+        {editing ? (
+          <textarea
+            className="rb-edit-textarea"
+            value={draft.text || ''}
+            onChange={(e) => setDraft({ ...draft, text: e.target.value })}
+            rows={4}
+          />
+        ) : (
+          <p className="rb-text">{content.text}</p>
+        )}
       </div>
     );
   }
@@ -121,18 +156,39 @@ function BuilderSection({ section }: { section: ResumeSection }) {
       <div className="rb-section">
         <div className="rb-section-header">
           <span className="rb-section-type">Experience</span>
-          <button className="rb-section-edit">edit</button>
+          {editButtons}
         </div>
-        <div className="rb-company">{content.company}</div>
-        <div className="rb-title">{content.title}</div>
-        <div className="rb-dates">
-          {content.start_date} — {content.end_date || 'Present'}
-          {content.location && ` · ${content.location}`}
-        </div>
-        {content.bullets && (
-          <ul className="rb-bullets">
-            {content.bullets.map((b: string, i: number) => <li key={i}>{b}</li>)}
-          </ul>
+        {editing ? (
+          <div className="rb-edit-fields">
+            <input className="rb-edit-input" value={draft.company || ''} onChange={(e) => setDraft({ ...draft, company: e.target.value })} placeholder="Company" />
+            <input className="rb-edit-input" value={draft.title || ''} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Title" />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input className="rb-edit-input" value={draft.start_date || ''} onChange={(e) => setDraft({ ...draft, start_date: e.target.value })} placeholder="Start date" style={{ flex: 1 }} />
+              <input className="rb-edit-input" value={draft.end_date || ''} onChange={(e) => setDraft({ ...draft, end_date: e.target.value })} placeholder="End date" style={{ flex: 1 }} />
+            </div>
+            <input className="rb-edit-input" value={draft.location || ''} onChange={(e) => setDraft({ ...draft, location: e.target.value })} placeholder="Location" />
+            <textarea
+              className="rb-edit-textarea"
+              value={(draft.bullets || []).join('\n')}
+              onChange={(e) => setDraft({ ...draft, bullets: e.target.value.split('\n') })}
+              rows={Math.max(3, (draft.bullets || []).length + 1)}
+              placeholder="One bullet per line"
+            />
+          </div>
+        ) : (
+          <>
+            <div className="rb-company">{content.company}</div>
+            <div className="rb-title">{content.title}</div>
+            <div className="rb-dates">
+              {content.start_date} — {content.end_date || 'Present'}
+              {content.location && ` · ${content.location}`}
+            </div>
+            {content.bullets && (
+              <ul className="rb-bullets">
+                {content.bullets.map((b: string, i: number) => <li key={i}>{b}</li>)}
+              </ul>
+            )}
+          </>
         )}
       </div>
     );
@@ -143,11 +199,22 @@ function BuilderSection({ section }: { section: ResumeSection }) {
       <div className="rb-section">
         <div className="rb-section-header">
           <span className="rb-section-type">Education</span>
-          <button className="rb-section-edit">edit</button>
+          {editButtons}
         </div>
-        <div className="rb-company">{content.institution}</div>
-        <div className="rb-title">{content.degree}{content.field ? ` — ${content.field}` : ''}</div>
-        {content.graduation_date && <div className="rb-dates">{content.graduation_date}</div>}
+        {editing ? (
+          <div className="rb-edit-fields">
+            <input className="rb-edit-input" value={draft.institution || ''} onChange={(e) => setDraft({ ...draft, institution: e.target.value })} placeholder="Institution" />
+            <input className="rb-edit-input" value={draft.degree || ''} onChange={(e) => setDraft({ ...draft, degree: e.target.value })} placeholder="Degree" />
+            <input className="rb-edit-input" value={draft.field || ''} onChange={(e) => setDraft({ ...draft, field: e.target.value })} placeholder="Field" />
+            <input className="rb-edit-input" value={draft.graduation_date || ''} onChange={(e) => setDraft({ ...draft, graduation_date: e.target.value })} placeholder="Graduation date" />
+          </div>
+        ) : (
+          <>
+            <div className="rb-company">{content.institution}</div>
+            <div className="rb-title">{content.degree}{content.field ? ` — ${content.field}` : ''}</div>
+            {content.graduation_date && <div className="rb-dates">{content.graduation_date}</div>}
+          </>
+        )}
       </div>
     );
   }
@@ -157,16 +224,41 @@ function BuilderSection({ section }: { section: ResumeSection }) {
       <div className="rb-section">
         <div className="rb-section-header">
           <span className="rb-section-type">Skills</span>
-          <button className="rb-section-edit">edit</button>
+          {editButtons}
         </div>
-        {content.categories?.map((cat: { name: string; skills: string[] }, i: number) => (
-          <div key={i} className="rb-skills-group">
-            <div className="rb-skills-label">{cat.name}</div>
-            <div className="rb-skill-tags">
-              {cat.skills.map((s: string) => <span key={s} className="rb-skill-tag">{s}</span>)}
-            </div>
+        {editing ? (
+          <div className="rb-edit-fields">
+            {(draft.categories || []).map((cat: { name: string; skills: string[] }, i: number) => (
+              <div key={i}>
+                <input className="rb-edit-input" value={cat.name} onChange={(e) => {
+                  const cats = [...(draft.categories || [])];
+                  cats[i] = { ...cats[i], name: e.target.value };
+                  setDraft({ ...draft, categories: cats });
+                }} placeholder="Category name" />
+                <textarea
+                  className="rb-edit-textarea"
+                  value={cat.skills.join(', ')}
+                  onChange={(e) => {
+                    const cats = [...(draft.categories || [])];
+                    cats[i] = { ...cats[i], skills: e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean) };
+                    setDraft({ ...draft, categories: cats });
+                  }}
+                  rows={2}
+                  placeholder="Comma-separated skills"
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        ) : (
+          content.categories?.map((cat: { name: string; skills: string[] }, i: number) => (
+            <div key={i} className="rb-skills-group">
+              <div className="rb-skills-label">{cat.name}</div>
+              <div className="rb-skill-tags">
+                {cat.skills.map((s: string) => <span key={s} className="rb-skill-tag">{s}</span>)}
+              </div>
+            </div>
+          ))
+        )}
       </div>
     );
   }
@@ -176,7 +268,7 @@ function BuilderSection({ section }: { section: ResumeSection }) {
       <div className="rb-section">
         <div className="rb-section-header">
           <span className="rb-section-type">Certifications</span>
-          <button className="rb-section-edit">edit</button>
+          {editButtons}
         </div>
         {content.items?.map((c: { name: string; issuer: string; date: string }, i: number) => (
           <div key={i} className="rb-text">{c.name} — {c.issuer} ({c.date})</div>
@@ -190,7 +282,7 @@ function BuilderSection({ section }: { section: ResumeSection }) {
 
 /* -- Main Page -- */
 export function ResumePage() {
-  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze } = useResume();
+  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze, updateSection } = useResume();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -307,7 +399,7 @@ export function ResumePage() {
       <div className="resume-split">
         <div className="resume-builder-panel">
           {sections.map((section) => (
-            <BuilderSection key={section.id} section={section} />
+            <BuilderSection key={section.id} section={section} onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })} />
           ))}
           {sections.length === 0 && (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
