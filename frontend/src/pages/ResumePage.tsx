@@ -190,7 +190,7 @@ function BuilderSection({ section }: { section: ResumeSection }) {
 
 /* -- Main Page -- */
 export function ResumePage() {
-  const { sections, analysis, isLoading, hasResume, upload } = useResume();
+  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume } = useResume();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -270,13 +270,27 @@ export function ResumePage() {
     <div className="resume-page">
       <div className="resume-header">
         <h1>Resume</h1>
-        <button
-          className="btn btn-sm"
-          style={{ fontSize: 12 }}
-          onClick={() => inputRef.current?.click()}
-        >
-          Re-upload
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-sm"
+            style={{ fontSize: 12 }}
+            onClick={() => inputRef.current?.click()}
+          >
+            Re-upload
+          </button>
+          <button
+            className="btn btn-sm"
+            style={{ fontSize: 12, color: '#c0392b', borderColor: '#c0392b' }}
+            onClick={() => {
+              if (resume && window.confirm('Delete this resume? This will remove all sections, analysis, and coaching history.')) {
+                deleteResume.mutate(resume.id);
+              }
+            }}
+            disabled={deleteResume.isPending}
+          >
+            {deleteResume.isPending ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
         <input
           ref={inputRef}
           type="file"

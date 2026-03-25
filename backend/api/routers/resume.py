@@ -154,6 +154,37 @@ async def get_resume(
     return {"resume": resume, "sections": sections, "analysis": analysis}
 
 
+# --- Delete Resume ---
+
+@router.delete("/{resume_id}")
+async def delete_resume(
+    resume_id: str,
+    user: AuthUser = Depends(get_current_user),
+):
+    """Delete a resume and all related data (sections, analysis, coach sessions).
+
+    Child tables use ON DELETE CASCADE so deleting the resume row clears everything.
+    Also clears the legacy resume_analysis row for this user.
+    """
+    db = get_supabase()
+
+    resume = db.table("resume").select("user_id").eq("id", resume_id).maybe_single().execute()
+    if not resume or not resume.data:
+        raise HTTPException(404, "Resume not found")
+    if resume.data["user_id"] != user.id:
+        raise HTTPException(403, "Not authorized")
+
+    db.table("resume").delete().eq("id", resume_id).execute()
+
+    # Also clear legacy resume_analysis
+    try:
+        db.table("resume_analysis").delete().eq("user_id", user.id).execute()
+    except Exception:
+        pass
+
+    return {"deleted": True}
+
+
 # --- Section CRUD ---
 
 class SectionUpdate(BaseModel):
