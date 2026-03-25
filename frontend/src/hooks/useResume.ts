@@ -98,6 +98,18 @@ export function useResume() {
     },
   });
 
+  const analyzeMutation = useMutation({
+    mutationFn: async (resumeId: string) => {
+      const { data } = await api.post(`/api/resume/${resumeId}/analyze`, {}, {
+        timeout: 120000,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resume'] });
+    },
+  });
+
   return {
     resume: query.data?.resume ?? null,
     sections: query.data?.sections ?? [],
@@ -107,5 +119,6 @@ export function useResume() {
     upload: uploadMutation,
     updateSection,
     deleteResume: deleteMutation,
+    analyze: analyzeMutation,
   };
 }

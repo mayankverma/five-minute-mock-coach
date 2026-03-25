@@ -108,36 +108,82 @@ async def _do_upload(user, file, resume_text, job_id):
             "content": section["content"],
         }).execute()
 
-    # Run analysis
-    analysis = await resume_service.analyze_resume(text, user_context)
-
-    # Save to resume_analysis_v2
-    analysis_data = {
-        "resume_id": resume_id,
-        "depth_level": "standard",
-        "overall_grade": analysis.get("overall_grade") or analysis.get("overall", "N/A"),
-        "ats_compatibility": analysis.get("ats_compatibility"),
-        "recruiter_scan": analysis.get("recruiter_scan"),
-        "bullet_quality": analysis.get("bullet_quality"),
-        "seniority_calibration": analysis.get("seniority_calibration"),
-        "keyword_coverage": analysis.get("keyword_coverage"),
-        "structure_layout": analysis.get("structure_layout"),
-        "consistency_polish": analysis.get("consistency_polish"),
-        "concern_management": analysis.get("concern_management"),
-        "top_fixes": analysis.get("top_fixes", []),
-        "concern_mitigations": analysis.get("concern_mitigations", []),
-        "positioning_strengths": analysis.get("positioning_strengths"),
-        "likely_concerns": analysis.get("likely_concerns"),
-        "career_narrative_gaps": analysis.get("career_narrative_gaps"),
-        "story_seeds": analysis.get("story_seeds", []),
-        "cross_surface_gaps": analysis.get("cross_surface_gaps", []),
-    }
-    db.table("resume_analysis_v2").insert(analysis_data).execute()
-
-    # Also save to legacy resume_analysis for backward compat
-    await resume_service.save_analysis(user.id, analysis)
+    # Run analysis (non-fatal — upload succeeds even if analysis fails)
+    analysis_data = await _run_analysis(db, resume_id, text, user_context, user.id)
 
     return {"resume_id": resume_id, "analysis": analysis_data, "sections_count": len(sections)}
+
+
+async def _run_analysis(db, resume_id: str, text: str, user_context: dict, user_id: str) -> dict | None:
+    """Run AI analysis and save to DB. Returns analysis_data or None on failure."""
+    try:
+        analysis = await resume_service.analyze_resume(text, user_context)
+
+        analysis_data = {
+            "resume_id": resume_id,
+            "depth_level": "standard",
+            "overall_grade": analysis.get("overall_grade") or analysis.get("overall", "N/A"),
+            "ats_compatibility": analysis.get("ats_compatibility"),
+            "recruiter_scan": analysis.get("recruiter_scan"),
+            "bullet_quality": analysis.get("bullet_quality"),
+            "seniority_calibration": analysis.get("seniority_calibration"),
+            "keyword_coverage": analysis.get("keyword_coverage"),
+            "structure_layout": analysis.get("structure_layout"),
+            "consistency_polish": analysis.get("consistency_polish"),
+            "concern_management": analysis.get("concern_management"),
+            "top_fixes": analysis.get("top_fixes", []),
+            "concern_mitigations": analysis.get("concern_mitigations", []),
+            "positioning_strengths": analysis.get("positioning_strengths"),
+            "likely_concerns": analysis.get("likely_concerns"),
+            "career_narrative_gaps": analysis.get("career_narrative_gaps"),
+            "story_seeds": analysis.get("story_seeds", []),
+            "cross_surface_gaps": analysis.get("cross_surface_gaps", []),
+        }
+        # Clear previous analysis
+        db.table("resume_analysis_v2").delete().eq("resume_id", resume_id).execute()
+        db.table("resume_analysis_v2").insert(analysis_data).execute()
+
+        # Also save to legacy resume_analysis for backward compat
+        try:
+            await resume_service.save_analysis(user_id, analysis)
+        except Exception as e:
+            print(f"[WARN] Legacy analysis save failed: {e}")
+
+        return analysis_data
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Resume analysis failed: {e}")
+        traceback.print_exc()
+        return None
+
+
+# --- Analyze (manual trigger) ---
+
+@router.post("/{resume_id}/analyze")
+async def analyze_resume(
+    resume_id: str,
+    user: AuthUser = Depends(get_current_user),
+):
+    """Run AI analysis on an existing resume. Can be triggered manually."""
+    db = get_supabase()
+
+    resume = db.table("resume").select("*").eq("id", resume_id).maybe_single().execute()
+    if not resume or not resume.data:
+        raise HTTPException(404, "Resume not found")
+    if resume.data["user_id"] != user.id:
+        raise HTTPException(403, "Not authorized")
+
+    text = resume.data.get("raw_text", "")
+    if not text:
+        raise HTTPException(400, "Resume has no text content to analyze")
+
+    user_context = await coach.build_user_context(user.id)
+    analysis_data = await _run_analysis(db, resume_id, text, user_context, user.id)
+
+    if not analysis_data:
+        raise HTTPException(500, "Analysis failed — check server logs")
+
+    return {"analysis": analysis_data}
 
 
 # --- Read Resume (with sections + analysis) ---

@@ -190,7 +190,7 @@ function BuilderSection({ section }: { section: ResumeSection }) {
 
 /* -- Main Page -- */
 export function ResumePage() {
-  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume } = useResume();
+  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze } = useResume();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -319,9 +319,29 @@ export function ResumePage() {
         <div className="resume-right-panel">
           {analysis ? (
             <AnalysisCard analysis={analysis} />
+          ) : analyze.isPending ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <div className="resume-uploading-spinner" style={{ width: 32, height: 32, margin: '0 auto 12px', border: '3px solid var(--border-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Running 8-dimension analysis...</div>
+            </div>
           ) : (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-              No analysis available.
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>No analysis yet</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+                Run an AI-powered audit covering ATS compatibility, bullet quality, seniority calibration, and more.
+              </div>
+              <button
+                className="ra-refine-btn"
+                style={{ maxWidth: 240, margin: '0 auto' }}
+                onClick={() => resume && analyze.mutate(resume.id)}
+              >
+                Analyze Resume
+              </button>
+              {analyze.isError && (
+                <div style={{ fontSize: 12, color: '#c0392b', marginTop: 8 }}>
+                  Analysis failed. Try again.
+                </div>
+              )}
             </div>
           )}
         </div>
