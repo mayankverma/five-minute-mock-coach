@@ -1,5 +1,6 @@
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useDashboard } from '../hooks/useDashboard';
+import { useResume } from '../hooks/useResume';
 import type { KanbanWorkspace, ScorePoint } from '../hooks/useDashboard';
 import './pages.css';
 
@@ -234,6 +235,7 @@ function DrillStepper({ currentStage, stages }: { currentStage: number; stages: 
 
 function GeneralDashboard() {
   const { profile, stories, scores, workspaces, drillProgression, coachingStrategy, isLoading } = useDashboard();
+  const { hasResume } = useResume();
 
   if (isLoading || !profile) {
     return (
@@ -370,16 +372,18 @@ function GeneralDashboard() {
       </div>
 
       {/* Action Banner */}
-      <div className="action-banner">
-        <div className="action-icon">
-          <svg viewBox="0 0 18 18"><polygon points="10 1 3 10 9 10 8 17 15 8 9 8" /></svg>
+      {!hasResume && (
+        <div className="action-banner">
+          <div className="action-icon">
+            <svg viewBox="0 0 18 18"><polygon points="10 1 3 10 9 10 8 17 15 8 9 8" /></svg>
+          </div>
+          <div className="action-text">
+            <div className="action-title">Upload Your Resume</div>
+            <div className="action-desc">Upload your resume so we can identify story seeds from your experience. Stories are the foundation for everything.</div>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={() => window.location.href = '/resume'}>Upload Resume</button>
         </div>
-        <div className="action-text">
-          <div className="action-title">Upload Your Resume</div>
-          <div className="action-desc">Upload your resume so we can identify story seeds from your experience. Stories are the foundation for everything.</div>
-        </div>
-        <button className="btn btn-primary btn-sm" onClick={() => window.location.href = '/resume'}>Upload Resume</button>
-      </div>
+      )}
     </div>
   );
 }
