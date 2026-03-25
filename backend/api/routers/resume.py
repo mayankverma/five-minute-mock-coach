@@ -1,9 +1,13 @@
 """Resume API — upload, parse, analyze, section CRUD, coach chat."""
 
+import io
 import json as json_mod
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 from backend.api.auth import get_current_user, AuthUser
 from backend.api.db.client import get_supabase
@@ -17,6 +21,19 @@ resume_service = ResumeService()
 resume_parser = ResumeParser()
 
 
+def _extract_pdf_text(content: bytes) -> str:
+    """Extract text from PDF bytes using pymupdf."""
+    try:
+        import pymupdf
+        doc = pymupdf.open(stream=content, filetype="pdf")
+        pages = [page.get_text() for page in doc]
+        doc.close()
+        return "\n".join(pages)
+    except Exception as e:
+        logger.warning(f"PDF extraction failed, falling back to raw decode: {e}")
+        return content.decode("utf-8", errors="ignore")
+
+
 # --- Upload + Analyze ---
 
 @router.post("/upload")
@@ -27,10 +44,29 @@ async def upload_resume(
     job_id: Optional[str] = Form(None),
 ):
     """Upload resume file, parse into sections, and run AI analysis."""
+    try:
+        return await _do_upload(user, file, resume_text, job_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Resume upload failed")
+        raise HTTPException(500, f"Upload failed: {e}")
+
+async def _do_upload(user, file, resume_text, job_id):
     db = get_supabase()
 
     content = await file.read()
-    text = resume_text or content.decode("utf-8", errors="ignore")
+
+    # Extract text from file
+    if resume_text:
+        text = resume_text
+    elif file.filename and file.filename.lower().endswith(".pdf"):
+        text = _extract_pdf_text(content)
+    else:
+        text = content.decode("utf-8", errors="ignore")
+
+    # Strip null bytes — Postgres TEXT columns cannot store \u0000
+    text = text.replace("\x00", "")
 
     # Upsert resume record
     resume_data = {
