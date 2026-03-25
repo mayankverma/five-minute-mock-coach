@@ -190,6 +190,16 @@ async def audit_linkedin(
     return {"analysis": saved}
 
 
+@router.delete("/linkedin")
+async def delete_linkedin(
+    user: AuthUser = Depends(get_current_user),
+):
+    """Delete stored LinkedIn analysis."""
+    db = get_supabase()
+    db.table("linkedin_analysis").delete().eq("user_id", user.id).execute()
+    return {"deleted": True}
+
+
 class LinkedInChatRequest(BaseModel):
     messages: list[dict]
 

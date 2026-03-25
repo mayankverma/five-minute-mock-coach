@@ -523,8 +523,10 @@ export function LinkedInPage() {
 
   function handleDelete() {
     if (window.confirm('Delete this LinkedIn audit? You can re-audit at any time.')) {
-      queryClient.removeQueries({ queryKey: ['linkedin'] });
-      setProfileText('');
+      api.delete('/api/materials/linkedin').then(() => {
+        queryClient.invalidateQueries({ queryKey: ['linkedin'] });
+        setProfileText('');
+      });
     }
   }
 
