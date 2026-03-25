@@ -6,6 +6,26 @@ import { useLinkedInChat } from '../hooks/useLinkedInChat';
 import api from '../lib/api';
 import './linkedin-page.css';
 
+/* -- Safe text rendering for AI responses that may be strings or objects -- */
+function safeText(val: any): string {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.map(safeText).join('\n');
+  if (typeof val === 'object') {
+    // Render nested objects as "Key: value" lines
+    return Object.entries(val)
+      .map(([k, v]) => {
+        const label = k.replace(/_/g, ' ');
+        if (typeof v === 'string') return `**${label}:** ${v}`;
+        if (Array.isArray(v)) return `**${label}:**\n${v.map((item: any) => typeof item === 'string' ? `- ${item}` : `- ${safeText(item)}`).join('\n')}`;
+        if (typeof v === 'object' && v) return `**${label}:**\n${safeText(v)}`;
+        return `**${label}:** ${String(v)}`;
+      })
+      .join('\n\n');
+  }
+  return String(val);
+}
+
 /* -- Markdown rendering (copied from ResumePage) -- */
 function renderInline(text: string) {
   return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/).map((seg, k) => {
@@ -214,10 +234,10 @@ function HeadlineSection({ data }: { data: NonNullable<LinkedInAnalysis['headlin
   return (
     <div className="li-section">
       <div className="li-section-header">Headline</div>
-      <div className="li-section-assessment">{data.assessment}</div>
-      {data.current && <div className="li-section-current">{data.current}</div>}
-      {data.recommended && <div className="li-section-recommended">{data.recommended}</div>}
-      {data.rationale && <div className="li-section-rationale">{data.rationale}</div>}
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
+      {data.current && <div className="li-section-current">{safeText(data.current)}</div>}
+      {data.recommended && <div className="li-section-recommended">{safeText(data.recommended)}</div>}
+      {data.rationale && <div className="li-section-rationale">{safeText(data.rationale)}</div>}
     </div>
   );
 }
@@ -226,9 +246,9 @@ function AboutSection({ data }: { data: NonNullable<LinkedInAnalysis['about_asse
   return (
     <div className="li-section">
       <div className="li-section-header">About</div>
-      <div className="li-section-assessment">{data.assessment}</div>
-      {data.recommended && <div className="li-section-recommended">{data.recommended}</div>}
-      {data.rationale && <div className="li-section-rationale">{data.rationale}</div>}
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
+      {data.recommended && <div className="li-section-recommended">{renderMarkdown(safeText(data.recommended))}</div>}
+      {data.rationale && <div className="li-section-rationale">{safeText(data.rationale)}</div>}
     </div>
   );
 }
@@ -237,29 +257,30 @@ function ExperienceSection({ data }: { data: NonNullable<LinkedInAnalysis['exper
   return (
     <div className="li-section">
       <div className="li-section-header">Experience</div>
-      <div className="li-section-assessment">{data.assessment}</div>
-      {data.recommended_rewrite && <div className="li-section-recommended">{data.recommended_rewrite}</div>}
-      {data.rationale && <div className="li-section-rationale">{data.rationale}</div>}
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
+      {data.recommended_rewrite && <div className="li-section-recommended">{renderMarkdown(safeText(data.recommended_rewrite))}</div>}
+      {data.rationale && <div className="li-section-rationale">{safeText(data.rationale)}</div>}
     </div>
   );
 }
 
 function SkillsSection({ data }: { data: NonNullable<LinkedInAnalysis['skills_assessment']> }) {
+  const skills = Array.isArray(data.recommended_top_10) ? data.recommended_top_10 : [];
   return (
     <div className="li-section">
       <div className="li-section-header">Skills</div>
-      <div className="li-section-assessment">{data.assessment}</div>
-      {data.recommended_top_10 && data.recommended_top_10.length > 0 && (
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
+      {skills.length > 0 && (
         <>
           <div className="li-section-label" style={{ marginTop: 8 }}>Recommended Top 10</div>
           <div className="li-skill-tags">
-            {data.recommended_top_10.map((skill, i) => (
-              <span key={i} className="li-skill-tag">{skill}</span>
+            {skills.map((skill, i) => (
+              <span key={i} className="li-skill-tag">{safeText(skill)}</span>
             ))}
           </div>
         </>
       )}
-      {data.rationale && <div className="li-section-rationale">{data.rationale}</div>}
+      {data.rationale && <div className="li-section-rationale">{safeText(data.rationale)}</div>}
     </div>
   );
 }
@@ -268,11 +289,11 @@ function PhotoBannerSection({ data }: { data: NonNullable<LinkedInAnalysis['phot
   return (
     <div className="li-section">
       <div className="li-section-header">Photo & Banner</div>
-      <div className="li-section-assessment">{data.assessment}</div>
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
       {data.recommendations && (
         <div className="li-section-text" style={{ marginTop: 6 }}>
           <div className="li-section-label">Recommendations</div>
-          {data.recommendations}
+          {renderMarkdown(safeText(data.recommendations))}
         </div>
       )}
     </div>
@@ -280,16 +301,17 @@ function PhotoBannerSection({ data }: { data: NonNullable<LinkedInAnalysis['phot
 }
 
 function FeaturedSection({ data }: { data: NonNullable<LinkedInAnalysis['featured_assessment']> }) {
+  const recs = Array.isArray(data.recommendations) ? data.recommendations : [];
   return (
     <div className="li-section">
       <div className="li-section-header">Featured</div>
-      <div className="li-section-assessment">{data.assessment}</div>
-      {data.recommendations && data.recommendations.length > 0 && (
+      <div className="li-section-assessment">{safeText(data.assessment)}</div>
+      {recs.length > 0 && (
         <>
           <div className="li-section-label" style={{ marginTop: 8 }}>Recommendations</div>
           <ul className="li-rec-list">
-            {data.recommendations.map((rec, i) => (
-              <li key={i}>{rec}</li>
+            {recs.map((rec, i) => (
+              <li key={i}>{safeText(rec)}</li>
             ))}
           </ul>
         </>
@@ -305,19 +327,19 @@ function RecommendationsSection({ data }: { data: NonNullable<LinkedInAnalysis['
       {data.count_guidance && (
         <div className="li-section-text" style={{ marginBottom: 6 }}>
           <div className="li-section-label">Guidance</div>
-          {data.count_guidance}
+          {safeText(data.count_guidance)}
         </div>
       )}
       {data.who_to_ask && (
         <div className="li-section-text" style={{ marginBottom: 6 }}>
           <div className="li-section-label">Who to Ask</div>
-          {data.who_to_ask}
+          {safeText(data.who_to_ask)}
         </div>
       )}
       {data.how_to_ask && (
         <div className="li-section-text">
           <div className="li-section-label">How to Ask</div>
-          {data.how_to_ask}
+          {safeText(data.how_to_ask)}
         </div>
       )}
     </div>
@@ -331,19 +353,19 @@ function UrlCompletenessSection({ data }: { data: NonNullable<LinkedInAnalysis['
       {data.custom_url && (
         <div className="li-section-text" style={{ marginBottom: 6 }}>
           <div className="li-section-label">Custom URL</div>
-          {data.custom_url}
+          {safeText(data.custom_url)}
         </div>
       )}
       {data.completeness && (
         <div className="li-section-text" style={{ marginBottom: 6 }}>
           <div className="li-section-label">Completeness</div>
-          {data.completeness}
+          {safeText(data.completeness)}
         </div>
       )}
       {data.open_to_work_guidance && (
         <div className="li-section-text">
           <div className="li-section-label">Open to Work Guidance</div>
-          {data.open_to_work_guidance}
+          {safeText(data.open_to_work_guidance)}
         </div>
       )}
     </div>
