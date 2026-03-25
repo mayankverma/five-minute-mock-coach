@@ -290,6 +290,20 @@ async def create_section(
     if not resume or not resume.data or resume.data["user_id"] != user.id:
         raise HTTPException(403, "Not authorized")
 
+    # Shift existing sections at or after this sort_order down by 1
+    existing = (
+        db.table("resume_section")
+        .select("id,sort_order")
+        .eq("resume_id", req.resume_id)
+        .gte("sort_order", req.sort_order)
+        .order("sort_order", desc=True)
+        .execute()
+    )
+    for s in (existing.data or []):
+        db.table("resume_section").update(
+            {"sort_order": s["sort_order"] + 1}
+        ).eq("id", s["id"]).execute()
+
     resp = db.table("resume_section").insert({
         "resume_id": req.resume_id,
         "section_type": req.section_type,
@@ -322,6 +336,26 @@ async def update_section(
     }).eq("id", section_id).execute()
 
     return resp.data[0]
+
+
+@router.delete("/sections/{section_id}")
+async def delete_section(
+    section_id: str,
+    user: AuthUser = Depends(get_current_user),
+):
+    """Delete a resume section."""
+    db = get_supabase()
+
+    section = db.table("resume_section").select("resume_id").eq("id", section_id).maybe_single().execute()
+    if not section or not section.data:
+        raise HTTPException(404, "Section not found")
+
+    resume = db.table("resume").select("user_id").eq("id", section.data["resume_id"]).maybe_single().execute()
+    if not resume or not resume.data or resume.data["user_id"] != user.id:
+        raise HTTPException(403, "Not authorized")
+
+    db.table("resume_section").delete().eq("id", section_id).execute()
+    return {"deleted": True}
 
 
 # --- Coach Chat (SSE Streaming) ---

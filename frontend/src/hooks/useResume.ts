@@ -110,6 +110,16 @@ export function useResume() {
     },
   });
 
+  const deleteSection = useMutation({
+    mutationFn: async (sectionId: string) => {
+      const { data } = await api.delete(`/api/resume/sections/${sectionId}`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['resume'] });
+    },
+  });
+
   return {
     resume: query.data?.resume ?? null,
     sections: query.data?.sections ?? [],
@@ -118,6 +128,7 @@ export function useResume() {
     hasResume: !!query.data?.resume,
     upload: uploadMutation,
     updateSection,
+    deleteSection,
     deleteResume: deleteMutation,
     analyze: analyzeMutation,
   };

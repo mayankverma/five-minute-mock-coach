@@ -352,10 +352,24 @@ function ChatPanel({ resumeId, suggestions }: { resumeId: string; suggestions: s
 }
 
 /* -- Builder Section -- */
-function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (sectionId: string, content: Record<string, any>) => void }) {
+function BuilderSection({ section, onSave, onDelete, autoEdit, onEditStart }: {
+  section: ResumeSection;
+  onSave: (sectionId: string, content: Record<string, any>) => void;
+  onDelete?: (sectionId: string) => void;
+  autoEdit?: boolean;
+  onEditStart?: () => void;
+}) {
   const { content, section_type } = section;
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(autoEdit || false);
   const [draft, setDraft] = useState(content);
+
+  useEffect(() => {
+    if (autoEdit) {
+      setEditing(true);
+      setDraft(content);
+      onEditStart?.();
+    }
+  }, [autoEdit]);
 
   function startEdit() {
     setDraft(content);
@@ -376,6 +390,9 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
     <div style={{ display: 'flex', gap: 6 }}>
       <button className="rb-section-edit" style={{ color: 'var(--primary)' }} onClick={save}>save</button>
       <button className="rb-section-edit" onClick={cancel}>cancel</button>
+      {onDelete && <button className="rb-section-edit" style={{ color: '#c0392b' }} onClick={() => {
+        if (window.confirm('Delete this section?')) onDelete(section.id);
+      }}>delete</button>}
     </div>
   ) : (
     <button className="rb-section-edit" onClick={startEdit}>edit</button>
@@ -383,7 +400,7 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
   if (section_type === 'summary') {
     return (
-      <div className="rb-section">
+      <div className="rb-section" data-section-id={section.id}>
         <div className="rb-section-header">
           <span className="rb-section-type">Summary</span>
           {editButtons}
@@ -404,7 +421,7 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
   if (section_type === 'experience') {
     return (
-      <div className="rb-section">
+      <div className="rb-section" data-section-id={section.id}>
         <div className="rb-section-header">
           <span className="rb-section-type">Experience</span>
           {editButtons}
@@ -447,7 +464,7 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
   if (section_type === 'education') {
     return (
-      <div className="rb-section">
+      <div className="rb-section" data-section-id={section.id}>
         <div className="rb-section-header">
           <span className="rb-section-type">Education</span>
           {editButtons}
@@ -472,7 +489,7 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
   if (section_type === 'skills') {
     return (
-      <div className="rb-section">
+      <div className="rb-section" data-section-id={section.id}>
         <div className="rb-section-header">
           <span className="rb-section-type">Skills</span>
           {editButtons}
@@ -516,7 +533,7 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
   if (section_type === 'certifications') {
     return (
-      <div className="rb-section">
+      <div className="rb-section" data-section-id={section.id}>
         <div className="rb-section-header">
           <span className="rb-section-type">Certifications</span>
           {editButtons}
@@ -533,11 +550,12 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 
 /* -- Main Page -- */
 export function ResumePage() {
-  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze, updateSection } = useResume();
+  const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze, updateSection, deleteSection } = useResume();
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [newSectionId, setNewSectionId] = useState<string | null>(null);
 
   function addBlankSection(type: string) {
     if (!resume) return;
@@ -548,14 +566,37 @@ export function ResumePage() {
       certifications: { items: [{ name: '', issuer: '', date: '' }] },
       summary: { text: '' },
     };
-    const sortOrder = sections.length;
-    api.post(`/api/resume/sections`, {
+
+    // Smart sort order: new experiences go to top (after summary),
+    // others go after the last section of their type
+    let sortOrder: number;
+    if (type === 'experience') {
+      // Find where experiences start (after summary)
+      const summaryIdx = sections.findIndex(s => s.section_type === 'summary');
+      sortOrder = summaryIdx >= 0 ? sections[summaryIdx].sort_order + 1 : 0;
+    } else {
+      // After the last section of this type, or at the end
+      const sameType = sections.filter(s => s.section_type === type);
+      if (sameType.length > 0) {
+        sortOrder = sameType[sameType.length - 1].sort_order + 1;
+      } else {
+        sortOrder = sections.length;
+      }
+    }
+
+    api.post('/api/resume/sections', {
       resume_id: resume.id,
       section_type: type,
       sort_order: sortOrder,
       content: defaults[type] || {},
-    }).then(() => {
+    }).then(({ data }) => {
+      setNewSectionId(data.id);
       queryClient.invalidateQueries({ queryKey: ['resume'] });
+      // Scroll to the new section after data refreshes
+      setTimeout(() => {
+        const el = document.querySelector(`[data-section-id="${data.id}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 400);
     });
     setShowAddMenu(false);
   }
@@ -704,7 +745,14 @@ export function ResumePage() {
           </div>
 
           {sections.map((section) => (
-            <BuilderSection key={section.id} section={section} onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })} />
+            <BuilderSection
+              key={section.id}
+              section={section}
+              onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })}
+              onDelete={(sectionId) => deleteSection.mutate(sectionId)}
+              autoEdit={section.id === newSectionId}
+              onEditStart={() => { if (section.id === newSectionId) setNewSectionId(null); }}
+            />
           ))}
           {sections.length === 0 && (
             <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
