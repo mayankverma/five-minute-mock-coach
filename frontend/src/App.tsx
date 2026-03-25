@@ -16,6 +16,10 @@ import { Materials } from './pages/Materials';
 import { Hype } from './pages/Hype';
 import { Debrief } from './pages/Debrief';
 import { Pricing } from './pages/Pricing';
+import { ResumePage } from './pages/ResumePage';
+import { LinkedInPage } from './pages/LinkedInPage';
+import { PitchPage } from './pages/PitchPage';
+import { OutreachPage } from './pages/OutreachPage';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +45,10 @@ export default function App() {
                 <Route path="/prep" element={<InterviewPrep />} />
                 <Route path="/progress" element={<Progress />} />
                 <Route path="/materials" element={<Materials />} />
+                <Route path="/resume" element={<ResumePage />} />
+                <Route path="/linkedin" element={<LinkedInPage />} />
+                <Route path="/pitch" element={<PitchPage />} />
+                <Route path="/outreach" element={<OutreachPage />} />
                 <Route path="/hype" element={<Hype />} />
                 <Route path="/debrief" element={<Debrief />} />
                 <Route path="/billing" element={<Pricing />} />

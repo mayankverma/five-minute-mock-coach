@@ -378,7 +378,7 @@ function GeneralDashboard() {
           <div className="action-title">Upload Your Resume</div>
           <div className="action-desc">Upload your resume so we can identify story seeds from your experience. Stories are the foundation for everything.</div>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => window.location.href = '/materials'}>Upload Resume</button>
+        <button className="btn btn-primary btn-sm" onClick={() => window.location.href = '/resume'}>Upload Resume</button>
       </div>
     </div>
   );

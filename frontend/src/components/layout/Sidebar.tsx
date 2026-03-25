@@ -11,18 +11,32 @@ interface NavItem {
 
 const GENERAL_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Coaching', items: [{ to: '/', label: 'Dashboard' }] },
-  { group: 'Build', items: [{ to: '/stories', label: 'Storybank', badge: 'Next' }] },
+  {
+    group: 'Build',
+    items: [
+      { to: '/resume', label: 'Resume' },
+      { to: '/stories', label: 'Storybank', badge: 'Next' },
+      { to: '/linkedin', label: 'LinkedIn' },
+      { to: '/pitch', label: 'Pitch' },
+      { to: '/outreach', label: 'Outreach' },
+    ],
+  },
   { group: 'Practice', items: [{ to: '/practice', label: 'Practice' }, { to: '/mock', label: 'Mock Interview' }] },
   { group: 'Track', items: [{ to: '/progress', label: 'Progress' }] },
-  { group: 'Materials', items: [{ to: '/materials', label: 'Resume' }, { to: '/materials?tab=linkedin', label: 'LinkedIn' }, { to: '/materials?tab=pitch', label: 'Pitch' }, { to: '/materials?tab=outreach', label: 'Outreach' }] },
 ];
 
 const JOB_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Coaching', items: [{ to: '/', label: 'Dashboard' }] },
-  { group: 'Prepare', items: [{ to: '/prep', label: 'Interview Prep' }, { to: '/stories', label: 'Storybank' }] },
+  {
+    group: 'Build',
+    items: [
+      { to: '/resume', label: 'Resume' },
+      { to: '/stories', label: 'Storybank' },
+    ],
+  },
+  { group: 'Prepare', items: [{ to: '/prep', label: 'Interview Prep' }] },
   { group: 'Practice', items: [{ to: '/practice', label: 'Practice' }, { to: '/mock', label: 'Mock Interview' }, { to: '/hype', label: 'Hype' }] },
   { group: 'Track', items: [{ to: '/debrief', label: 'Debrief' }, { to: '/progress', label: 'Progress' }] },
-  { group: 'Materials', items: [{ to: '/materials', label: 'Resume' }, { to: '/materials?tab=salary', label: 'Salary' }] },
 ];
 
 export function Sidebar() {
