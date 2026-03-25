@@ -1,5 +1,6 @@
-import { useRef, useState, type DragEvent } from 'react';
+import { useRef, useState, useEffect, type DragEvent } from 'react';
 import { useResume } from '../hooks/useResume';
+import { useResumeChat } from '../hooks/useResumeChat';
 import type { ResumeSection, ResumeAnalysis } from '../hooks/useResume';
 import './resume-page.css';
 
@@ -14,8 +15,59 @@ function UploadIcon() {
   );
 }
 
-/* -- Analysis Card -- */
-function AnalysisCard({ analysis }: { analysis: ResumeAnalysis }) {
+/* -- Helpers -- */
+function dimValue(raw: any): string {
+  if (!raw) return 'N/A';
+  if (typeof raw === 'object' && raw.status) return raw.status;
+  if (typeof raw === 'string') {
+    if (raw.startsWith('{')) {
+      try { const parsed = JSON.parse(raw); return parsed.status || raw; } catch { /* fall through */ }
+    }
+    return raw.split(' ')[0];
+  }
+  return 'N/A';
+}
+
+function dimClass(val: any) {
+  const v = dimValue(val).toLowerCase();
+  if (v.includes('strong') || v.includes('ready') || v.includes('aligned')) return 'strong';
+  if (v.includes('moderate') || v.includes('risky')) return 'moderate';
+  if (v.includes('weak') || v.includes('broken') || v.includes('mismatched')) return 'weak';
+  return '';
+}
+
+/* -- Analysis Accordion -- */
+function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
+  analysis: ResumeAnalysis | null;
+  onReanalyze: () => void;
+  isAnalyzing: boolean;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  if (!analysis && !isAnalyzing) {
+    return (
+      <div className="ra-accordion">
+        <div className="ra-accordion-header" style={{ cursor: 'default' }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Analysis</span>
+          <button className="btn btn-primary btn-sm" style={{ fontSize: 11 }} onClick={onReanalyze}>Analyze Resume</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAnalyzing) {
+    return (
+      <div className="ra-accordion">
+        <div className="ra-accordion-header" style={{ cursor: 'default' }}>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Analyzing...</span>
+          <div className="resume-uploading-spinner" style={{ width: 16, height: 16, border: '2px solid var(--border-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!analysis) return null;
+
   const dims = [
     { label: 'ATS', value: analysis.ats_compatibility },
     { label: 'Recruiter Scan', value: analysis.recruiter_scan },
@@ -27,75 +79,140 @@ function AnalysisCard({ analysis }: { analysis: ResumeAnalysis }) {
     { label: 'Polish', value: analysis.consistency_polish },
   ];
 
-  function dimValue(raw: any): string {
-    if (!raw) return 'N/A';
-    if (typeof raw === 'object' && raw.status) return raw.status;
-    if (typeof raw === 'string') {
-      // Try parsing JSON strings like '{"status":"ATS-Broken","rationale":"..."}'
-      if (raw.startsWith('{')) {
-        try { const parsed = JSON.parse(raw); return parsed.status || raw; } catch { /* fall through */ }
-      }
-      return raw.split(' ')[0];
-    }
-    return 'N/A';
-  }
+  return (
+    <div className="ra-accordion">
+      <div className="ra-accordion-header" onClick={() => setExpanded(!expanded)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="ra-accordion-chevron" style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+          <div className="ra-grade-circle" style={{ width: 32, height: 32, fontSize: 14, borderWidth: 2 }}>{analysis.overall_grade || '?'}</div>
+          <span style={{ fontWeight: 600, fontSize: 13 }}>Resume Score</span>
+          {!expanded && (
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              {dims.filter(d => dimClass(d.value) === 'weak').length} issues
+            </span>
+          )}
+        </div>
+        <button className="btn btn-sm" style={{ fontSize: 11 }} onClick={(e) => { e.stopPropagation(); onReanalyze(); }}>Re-analyze</button>
+      </div>
 
-  function dimClass(val: any) {
-    const v = dimValue(val).toLowerCase();
-    if (v.includes('strong') || v.includes('ready') || v.includes('aligned')) return 'strong';
-    if (v.includes('moderate') || v.includes('risky')) return 'moderate';
-    if (v.includes('weak') || v.includes('broken') || v.includes('mismatched')) return 'weak';
-    return '';
+      {expanded && (
+        <div className="ra-accordion-body">
+          <div className="ra-dims">
+            {dims.map((d) => (
+              <div key={d.label} className="ra-dim">
+                <span className="ra-dim-label">{d.label}</span>
+                <span className={`ra-dim-value ${dimClass(d.value)}`}>{dimValue(d.value)}</span>
+              </div>
+            ))}
+          </div>
+
+          {analysis.top_fixes && analysis.top_fixes.length > 0 && (
+            <>
+              <div className="ra-fixes-title">Top Fixes</div>
+              {analysis.top_fixes.map((fix, i) => (
+                <div key={i} className="ra-fix">
+                  <span className={`ra-fix-severity ${fix.severity || 'neutral'}`}>
+                    {fix.severity === 'red' ? 'Fix' : fix.severity === 'amber' ? 'Improve' : 'Nice'}
+                  </span>
+                  <span className="ra-fix-text">{fix.text || fix.fix}</span>
+                </div>
+              ))}
+            </>
+          )}
+
+          {analysis.story_seeds && analysis.story_seeds.length > 0 && (
+            <>
+              <div className="ra-seeds-title">Story Seeds</div>
+              {analysis.story_seeds.map((seed, i) => (
+                <div key={i} className="ra-seed">
+                  <span className="ra-seed-text">{seed.title || seed.source_bullet}</span>
+                  <button className="ra-seed-btn">Add to Storybank</button>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -- Chat Panel -- */
+function ChatPanel({ resumeId, suggestions }: { resumeId: string; suggestions: string[] }) {
+  const { messages, isStreaming, sendMessage } = useResumeChat(resumeId);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  function handleSend(text?: string) {
+    const msg = text || input.trim();
+    if (!msg || isStreaming) return;
+    sendMessage(msg);
+    setInput('');
   }
 
   return (
-    <div className="ra-card">
-      <div className="ra-grade-row">
-        <div className="ra-grade-circle">{analysis.overall_grade || '?'}</div>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Resume Score</div>
-          <div className="ra-grade-label">{analysis.depth_level} analysis</div>
-        </div>
+    <div className="rc-chat-panel">
+      <div className="rc-chat-header">
+        <span style={{ fontWeight: 600, fontSize: 13 }}>Resume Coach</span>
       </div>
 
-      <div className="ra-dims">
-        {dims.map((d) => (
-          <div key={d.label} className="ra-dim">
-            <span className="ra-dim-label">{d.label}</span>
-            <span className={`ra-dim-value ${dimClass(d.value)}`}>
-              {dimValue(d.value)}
-            </span>
+      <div className="rc-messages">
+        {messages.length === 0 && (
+          <div className="rc-empty">
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>How can I help with your resume?</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+              I can rewrite bullets, optimize for ATS, improve your summary, or address any of the analysis findings.
+            </div>
+            {suggestions.length > 0 && (
+              <div className="rc-suggestions">
+                {suggestions.map((s, i) => (
+                  <button key={i} className="rc-suggestion-chip" onClick={() => handleSend(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {messages.map((msg, i) => (
+          <div key={i} className={`rc-msg rc-msg-${msg.role}`}>
+            <div className="rc-msg-bubble">{msg.text}{msg.role === 'coach' && isStreaming && i === messages.length - 1 && <span className="rc-cursor" />}</div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
-      {analysis.top_fixes && analysis.top_fixes.length > 0 && (
-        <>
-          <div className="ra-fixes-title">Top Fixes</div>
-          {analysis.top_fixes.map((fix, i) => (
-            <div key={i} className="ra-fix">
-              <span className={`ra-fix-severity ${fix.severity || 'neutral'}`}>
-                {fix.severity === 'red' ? 'Fix' : fix.severity === 'amber' ? 'Improve' : 'Nice'}
-              </span>
-              <span className="ra-fix-text">{fix.text || fix.fix}</span>
-            </div>
-          ))}
-        </>
-      )}
-
-      {analysis.story_seeds && analysis.story_seeds.length > 0 && (
-        <>
-          <div className="ra-seeds-title">Story Seeds</div>
-          {analysis.story_seeds.map((seed, i) => (
-            <div key={i} className="ra-seed">
-              <span className="ra-seed-text">{seed.title || seed.source_bullet}</span>
-              <button className="ra-seed-btn">Add to Storybank</button>
-            </div>
-          ))}
-        </>
-      )}
-
-      <button className="ra-refine-btn">Refine with Coach</button>
+      <div className="rc-input-area">
+        {messages.length > 0 && suggestions.length > 0 && !isStreaming && (
+          <div className="rc-suggestions" style={{ marginBottom: 8 }}>
+            {suggestions.slice(0, 3).map((s, i) => (
+              <button key={i} className="rc-suggestion-chip" onClick={() => handleSend(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="rc-input-row">
+          <input
+            className="rc-input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+            placeholder="Ask about your resume..."
+            disabled={isStreaming}
+          />
+          <button className="rc-send-btn" onClick={() => handleSend()} disabled={isStreaming || !input.trim()}>
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 10h12M12 4l6 6-6 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -357,7 +474,14 @@ export function ResumePage() {
     );
   }
 
-  // Main state — split pane with builder (left) + analysis (right)
+  // Build suggestion chips from analysis top_fixes
+  const suggestions = (analysis?.top_fixes || [])
+    .slice(0, 5)
+    .map(fix => fix.text || fix.fix)
+    .filter(Boolean)
+    .map(text => `Help me fix: ${text.length > 60 ? text.slice(0, 57) + '...' : text}`);
+
+  // Main state — split pane: left (analysis accordion + builder), right (chat)
   return (
     <div className="resume-page">
       <div className="resume-header">
@@ -397,7 +521,14 @@ export function ResumePage() {
       </div>
 
       <div className="resume-split">
+        {/* Left: Analysis accordion + Resume builder */}
         <div className="resume-builder-panel">
+          <AnalysisAccordion
+            analysis={analysis}
+            onReanalyze={() => resume && analyze.mutate(resume.id)}
+            isAnalyzing={analyze.isPending}
+          />
+
           {sections.map((section) => (
             <BuilderSection key={section.id} section={section} onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })} />
           ))}
@@ -408,34 +539,9 @@ export function ResumePage() {
           )}
         </div>
 
-        <div className="resume-right-panel">
-          {analysis ? (
-            <AnalysisCard analysis={analysis} />
-          ) : analyze.isPending ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <div className="resume-uploading-spinner" style={{ width: 32, height: 32, margin: '0 auto 12px', border: '3px solid var(--border-light)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>Running 8-dimension analysis...</div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>No analysis yet</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-                Run an AI-powered audit covering ATS compatibility, bullet quality, seniority calibration, and more.
-              </div>
-              <button
-                className="ra-refine-btn"
-                style={{ maxWidth: 240, margin: '0 auto' }}
-                onClick={() => resume && analyze.mutate(resume.id)}
-              >
-                Analyze Resume
-              </button>
-              {analyze.isError && (
-                <div style={{ fontSize: 12, color: '#c0392b', marginTop: 8 }}>
-                  Analysis failed. Try again.
-                </div>
-              )}
-            </div>
-          )}
+        {/* Right: Coach chat */}
+        <div className="resume-chat-panel">
+          {resume && <ChatPanel resumeId={resume.id} suggestions={suggestions} />}
         </div>
       </div>
     </div>
