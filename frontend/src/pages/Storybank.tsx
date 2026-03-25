@@ -107,7 +107,7 @@ function StrengthBar({ value }: { value: number }) {
 export function Storybank() {
   const { stories, addStory, deleteStory, isLoading } = useStories();
   const { activeWorkspace } = useWorkspace();
-  const { gapAnalysis, isLoading: gapsLoading } = useStoryGaps(activeWorkspace?.id);
+  const { gapAnalysis, isLoading: gapsLoading, analyze: analyzeGaps, isAnalyzing } = useStoryGaps(activeWorkspace?.id);
   const { narrative } = useNarrativeIdentity(stories.length);
   const [showForm, setShowForm] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
@@ -349,20 +349,43 @@ export function Storybank() {
           </div>
 
           {/* ── Gap Analysis ── */}
-          {gapsLoading && (
+          {isAnalyzing && (
             <div className="card" style={{ marginTop: 14 }}>
               <div className="card-body" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>
                 Analyzing your story coverage...
               </div>
             </div>
           )}
-          {!gapsLoading && gapAnalysis && gapAnalysis.gaps.length > 0 && (
+          {!isAnalyzing && !gapAnalysis && !gapsLoading && (
+            <div className="card" style={{ marginTop: 14 }}>
+              <div className="card-body" style={{ textAlign: 'center', padding: '24px' }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Story Coverage Analysis</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 14, lineHeight: 1.6 }}>
+                  Run an AI-powered analysis to identify gaps in your storybank and get recommendations.
+                </div>
+                <button className="btn btn-primary btn-sm" onClick={() => analyzeGaps.mutate()}>
+                  Analyze Gaps
+                </button>
+              </div>
+            </div>
+          )}
+          {!isAnalyzing && gapAnalysis && gapAnalysis.gaps && gapAnalysis.gaps.length > 0 && (
             <div className="card" style={{ marginTop: 14 }}>
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="card-title"><SearchIcon /> {gapAnalysis.mode === 'workspace' ? 'Gaps for This Role' : 'Story Coverage (Recommended)'}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  Coverage: {gapAnalysis.coverage_score}/10
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {gapAnalysis.created_at && (
+                    <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      {new Date(gapAnalysis.created_at).toLocaleDateString()}
+                    </span>
+                  )}
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    Coverage: {gapAnalysis.coverage_score}/10
+                  </span>
+                  <button className="btn btn-sm" style={{ fontSize: 11 }} onClick={() => analyzeGaps.mutate()}>
+                    Re-analyze
+                  </button>
+                </div>
               </div>
               <div className="card-body" style={{ padding: 0 }}>
                 <table className="data-table">
