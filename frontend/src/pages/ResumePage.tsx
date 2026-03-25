@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, type DragEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useResume } from '../hooks/useResume';
 import { useResumeChat } from '../hooks/useResumeChat';
 import type { ResumeSection, ResumeAnalysis } from '../hooks/useResume';
@@ -533,8 +534,31 @@ function BuilderSection({ section, onSave }: { section: ResumeSection; onSave: (
 /* -- Main Page -- */
 export function ResumePage() {
   const { resume, sections, analysis, isLoading, hasResume, upload, deleteResume, analyze, updateSection } = useResume();
+  const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
+
+  function addBlankSection(type: string) {
+    if (!resume) return;
+    const defaults: Record<string, Record<string, any>> = {
+      experience: { company: '', title: '', start_date: '', end_date: null, location: '', bullets: [''] },
+      education: { institution: '', degree: '', field: '', graduation_date: '' },
+      skills: { categories: [{ name: '', skills: [] }] },
+      certifications: { items: [{ name: '', issuer: '', date: '' }] },
+      summary: { text: '' },
+    };
+    const sortOrder = sections.length;
+    api.post(`/api/resume/sections`, {
+      resume_id: resume.id,
+      section_type: type,
+      sort_order: sortOrder,
+      content: defaults[type] || {},
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['resume'] });
+    });
+    setShowAddMenu(false);
+  }
 
   function handleFile(file: File) {
     if (file && (file.type === 'application/pdf' || file.name.endsWith('.docx'))) {
@@ -607,12 +631,13 @@ export function ResumePage() {
     );
   }
 
-  // Build suggestion chips from analysis top_fixes
-  const suggestions = (analysis?.top_fixes || [])
-    .slice(0, 5)
+  // Build suggestion chips: "Add latest experience" first, then analysis fixes
+  const fixSuggestions = (analysis?.top_fixes || [])
+    .slice(0, 4)
     .map(fix => fix.text || fix.fix)
     .filter(Boolean)
     .map(text => `Help me fix: ${text.length > 60 ? text.slice(0, 57) + '...' : text}`);
+  const suggestions = ['Add my latest work experience', ...fixSuggestions];
 
   // Main state — split pane: left (analysis accordion + builder), right (chat)
   return (
@@ -670,6 +695,22 @@ export function ResumePage() {
               No sections parsed yet.
             </div>
           )}
+
+          {/* + Add Section */}
+          <div className="rb-add-section">
+            {showAddMenu ? (
+              <div className="rb-add-menu">
+                <button className="rb-add-option" onClick={() => addBlankSection('experience')}>Experience</button>
+                <button className="rb-add-option" onClick={() => addBlankSection('education')}>Education</button>
+                <button className="rb-add-option" onClick={() => addBlankSection('skills')}>Skills</button>
+                <button className="rb-add-option" onClick={() => addBlankSection('certifications')}>Certification</button>
+                <button className="rb-add-option" onClick={() => addBlankSection('summary')}>Summary</button>
+                <button className="rb-add-option rb-add-cancel" onClick={() => setShowAddMenu(false)}>Cancel</button>
+              </div>
+            ) : (
+              <button className="rb-add-btn" onClick={() => setShowAddMenu(true)}>+ Add Section</button>
+            )}
+          </div>
         </div>
 
         {/* Right: Coach chat */}

@@ -80,6 +80,27 @@
   border-radius: var(--radius-xs); color: var(--text-secondary);
 }
 
+/* Add section */
+.rb-add-section { margin-top: 4px; margin-bottom: 16px; }
+.rb-add-btn {
+  width: 100%; padding: 10px; font-size: 13px; color: var(--text-muted);
+  background: none; border: 2px dashed var(--border-light); border-radius: var(--radius-sm);
+  cursor: pointer; transition: border-color 0.2s, color 0.2s;
+}
+.rb-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+.rb-add-menu {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px; background: var(--card); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+.rb-add-option {
+  font-size: 12px; padding: 6px 14px; border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); background: var(--bg); color: var(--text);
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+}
+.rb-add-option:hover { border-color: var(--primary); background: rgba(74, 158, 143, 0.04); }
+.rb-add-cancel { color: var(--text-muted); }
+
 /* Analysis accordion */
 .ra-accordion {
   background: var(--card); border: 1px solid var(--border-light);

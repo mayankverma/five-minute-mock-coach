@@ -269,8 +269,35 @@ async def delete_resume(
 
 # --- Section CRUD ---
 
+class SectionCreate(BaseModel):
+    resume_id: str
+    section_type: str
+    sort_order: int = 0
+    content: dict
+
 class SectionUpdate(BaseModel):
     content: dict
+
+@router.post("/sections")
+async def create_section(
+    req: SectionCreate,
+    user: AuthUser = Depends(get_current_user),
+):
+    """Add a new section to a resume."""
+    db = get_supabase()
+
+    resume = db.table("resume").select("user_id").eq("id", req.resume_id).maybe_single().execute()
+    if not resume or not resume.data or resume.data["user_id"] != user.id:
+        raise HTTPException(403, "Not authorized")
+
+    resp = db.table("resume_section").insert({
+        "resume_id": req.resume_id,
+        "section_type": req.section_type,
+        "sort_order": req.sort_order,
+        "content": req.content,
+    }).execute()
+
+    return resp.data[0]
 
 @router.put("/sections/{section_id}")
 async def update_section(
