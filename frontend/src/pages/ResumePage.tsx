@@ -687,16 +687,7 @@ export function ResumePage() {
             isAnalyzing={analyze.isPending}
           />
 
-          {sections.map((section) => (
-            <BuilderSection key={section.id} section={section} onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })} />
-          ))}
-          {sections.length === 0 && (
-            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-              No sections parsed yet.
-            </div>
-          )}
-
-          {/* + Add Section */}
+          {/* + Add Section — between analysis and builder */}
           <div className="rb-add-section">
             {showAddMenu ? (
               <div className="rb-add-menu">
@@ -711,6 +702,15 @@ export function ResumePage() {
               <button className="rb-add-btn" onClick={() => setShowAddMenu(true)}>+ Add Section</button>
             )}
           </div>
+
+          {sections.map((section) => (
+            <BuilderSection key={section.id} section={section} onSave={(sectionId, content) => updateSection.mutate({ sectionId, content })} />
+          ))}
+          {sections.length === 0 && (
+            <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
+              No sections parsed yet.
+            </div>
+          )}
         </div>
 
         {/* Right: Coach chat */}
