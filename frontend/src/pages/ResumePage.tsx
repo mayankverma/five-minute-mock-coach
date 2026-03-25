@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, type DragEvent } from 'react';
 import { useResume } from '../hooks/useResume';
 import { useResumeChat } from '../hooks/useResumeChat';
 import type { ResumeSection, ResumeAnalysis } from '../hooks/useResume';
+import api from '../lib/api';
 import './resume-page.css';
 
 /* -- Markdown rendering -- */
@@ -104,6 +105,24 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
   isAnalyzing: boolean;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [addedSeeds, setAddedSeeds] = useState<Set<number>>(new Set());
+  const [addingSeeds, setAddingSeeds] = useState<Set<number>>(new Set());
+
+  async function addToStorybank(seed: { title: string; source_bullet: string; potential_skill: string }, index: number) {
+    setAddingSeeds(prev => new Set(prev).add(index));
+    try {
+      await api.post('/api/stories', {
+        title: seed.title || seed.source_bullet,
+        notes: seed.source_bullet ? `From resume: ${seed.source_bullet}` : undefined,
+        primary_skill: seed.potential_skill || undefined,
+      });
+      setAddedSeeds(prev => new Set(prev).add(index));
+    } catch {
+      // Show error inline
+    } finally {
+      setAddingSeeds(prev => { const s = new Set(prev); s.delete(index); return s; });
+    }
+  }
 
   if (!analysis && !isAnalyzing) {
     return (
@@ -187,7 +206,17 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
               {analysis.story_seeds.map((seed, i) => (
                 <div key={i} className="ra-seed">
                   <span className="ra-seed-text">{seed.title || seed.source_bullet}</span>
-                  <button className="ra-seed-btn">Add to Storybank</button>
+                  {addedSeeds.has(i) ? (
+                    <span className="ra-seed-added">Added</span>
+                  ) : (
+                    <button
+                      className="ra-seed-btn"
+                      onClick={() => addToStorybank(seed, i)}
+                      disabled={addingSeeds.has(i)}
+                    >
+                      {addingSeeds.has(i) ? 'Adding...' : 'Add to Storybank'}
+                    </button>
+                  )}
                 </div>
               ))}
             </>
