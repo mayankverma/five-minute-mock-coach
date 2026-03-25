@@ -113,8 +113,9 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
     try {
       await api.post('/api/stories', {
         title: seed.title || seed.source_bullet,
-        notes: seed.source_bullet ? `From resume: ${seed.source_bullet}` : undefined,
+        notes: `[Resume seed] ${seed.source_bullet || seed.title}. This story needs STAR details — use Improve with Coach to develop it.`,
         primary_skill: seed.potential_skill || undefined,
+        strength: 0,
       });
       setAddedSeeds(prev => new Set(prev).add(index));
     } catch {
@@ -214,7 +215,7 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
                       onClick={() => addToStorybank(seed, i)}
                       disabled={addingSeeds.has(i)}
                     >
-                      {addingSeeds.has(i) ? 'Adding...' : 'Add to Storybank'}
+                      {addingSeeds.has(i) ? 'Adding...' : 'Add as Story Seed'}
                     </button>
                   )}
                 </div>
