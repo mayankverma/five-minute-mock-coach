@@ -21,12 +21,13 @@ function renderMarkdown(text: string) {
   const elements: React.ReactNode[] = [];
   let listItems: string[] = [];
   let listOrdered = false;
+  let keyCounter = 0;
 
   const flushList = () => {
     if (listItems.length === 0) return;
     const Tag = listOrdered ? 'ol' : 'ul';
     elements.push(
-      <Tag key={elements.length} style={{ margin: '6px 0', paddingLeft: 20 }}>
+      <Tag key={`list-${keyCounter++}`} style={{ margin: '6px 0', paddingLeft: 20 }}>
         {listItems.map((item, i) => <li key={i} style={{ marginBottom: 3 }}>{renderInline(item)}</li>)}
       </Tag>
     );
@@ -35,16 +36,17 @@ function renderMarkdown(text: string) {
 
   for (let j = 0; j < lines.length; j++) {
     const line = lines[j];
+    const k = `ln-${keyCounter++}`;
 
     if (line.startsWith('### ')) {
       flushList();
-      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 13, marginTop: 10, marginBottom: 4 }}>{renderInline(line.slice(4))}</div>);
+      elements.push(<div key={k} style={{ fontWeight: 700, fontSize: 13, marginTop: 10, marginBottom: 4 }}>{renderInline(line.slice(4))}</div>);
     } else if (line.startsWith('## ')) {
       flushList();
-      elements.push(<div key={j} style={{ fontWeight: 700, fontSize: 14, marginTop: 12, marginBottom: 4 }}>{renderInline(line.slice(3))}</div>);
+      elements.push(<div key={k} style={{ fontWeight: 700, fontSize: 14, marginTop: 12, marginBottom: 4 }}>{renderInline(line.slice(3))}</div>);
     } else if (line.startsWith('> ')) {
       flushList();
-      elements.push(<blockquote key={j} style={{ borderLeft: '3px solid var(--border-light)', paddingLeft: 12, margin: '6px 0', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{renderInline(line.slice(2))}</blockquote>);
+      elements.push(<blockquote key={k} style={{ borderLeft: '3px solid var(--border-light)', paddingLeft: 12, margin: '6px 0', color: 'var(--text-secondary)', fontStyle: 'italic' }}>{renderInline(line.slice(2))}</blockquote>);
     } else if (line.match(/^[-*] /)) {
       if (listOrdered) flushList();
       listOrdered = false;
@@ -56,9 +58,9 @@ function renderMarkdown(text: string) {
     } else {
       flushList();
       if (line.trim() === '') {
-        elements.push(<div key={j} style={{ height: 8 }} />);
+        elements.push(<div key={k} style={{ height: 8 }} />);
       } else {
-        elements.push(<div key={j}>{renderInline(line)}</div>);
+        elements.push(<div key={k}>{renderInline(line)}</div>);
       }
     }
   }
