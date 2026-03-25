@@ -234,9 +234,22 @@ function OverallSection({ analysis }: { analysis: LinkedInAnalysis }) {
     { label: 'Differentiation', ...parseDimValue(analysis.differentiation_score) },
   ];
 
+  // Derive overall rating from AI or from dimensions
+  const overallRating = (analysis as any).overall_rating
+    || (dims.every(d => d.rating.toLowerCase().includes('strong')) ? 'Strong'
+      : dims.some(d => d.rating.toLowerCase().includes('weak')) ? 'Weak'
+      : 'Needs Work');
+
+  const ratingColor = overallRating.toLowerCase().includes('strong') ? 'li-dim-strong'
+    : overallRating.toLowerCase().includes('weak') ? 'li-dim-weak'
+    : 'li-dim-moderate';
+
   return (
     <div className="li-section">
-      <div className="li-section-header">Overall Score</div>
+      <div className="li-section-header" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span>LinkedIn Profile Score</span>
+        <span className={`li-dim-badge ${ratingColor}`} style={{ fontSize: 13, padding: '4px 14px' }}>{overallRating}</span>
+      </div>
       <div className="li-overall">{safeText(analysis.overall)}</div>
       <div className="li-dims">
         {dims.map((d) => (

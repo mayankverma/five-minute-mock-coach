@@ -54,6 +54,7 @@ class PitchService:
             f"## Instructions\n"
             f"Perform a comprehensive 9-section LinkedIn profile audit. Return JSON with:\n"
             f"- overall: overall assessment (2-3 sentences)\n"
+            f"- overall_rating: one of 'Strong', 'Needs Work', or 'Weak' (based on the 3 dimensions below)\n"
             f"- recruiter_discoverability: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
             f"- credibility_score: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
             f"- differentiation_score: 'Strong' or 'Moderate' or 'Weak' with rationale\n"
