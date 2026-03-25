@@ -131,10 +131,18 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
     }).catch(() => {});
   }, [analysis]);
 
+  // Track in-flight requests to prevent double-clicks
+  const inflightRef = useRef(new Set<number>());
+
   async function addToStorybank(seed: { title: string; source_bullet: string; potential_skill: string }, index: number) {
+    // Immediate guard — prevents double-clicks before React re-renders
+    if (inflightRef.current.has(index)) return;
+    inflightRef.current.add(index);
+
     const seedTitle = (seed.title || seed.source_bullet || '').toLowerCase().trim();
     if (existingTitles.has(seedTitle)) {
       setAddedSeeds(prev => new Set(prev).add(index));
+      inflightRef.current.delete(index);
       return;
     }
 
@@ -151,6 +159,7 @@ function AnalysisAccordion({ analysis, onReanalyze, isAnalyzing }: {
       console.error('Failed to add story seed:', err);
     } finally {
       setAddingSeeds(prev => { const s = new Set(prev); s.delete(index); return s; });
+      inflightRef.current.delete(index);
     }
   }
 

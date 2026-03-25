@@ -118,6 +118,22 @@ async def create_story(
 ):
     """Create a new story and v1 version snapshot."""
     db = get_supabase()
+
+    # Check for duplicate title
+    existing = (
+        db.table("story")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("title", story.title)
+        .eq("status", "active")
+        .maybe_single()
+        .execute()
+    )
+    if existing and existing.data:
+        # Return the existing story instead of creating a duplicate
+        existing_story = db.table("story").select("*").eq("id", existing.data["id"]).single().execute()
+        return existing_story.data
+
     data = {"user_id": user.id, **story.model_dump(exclude_none=True)}
     resp = db.table("story").insert(data).execute()
     story_row = resp.data[0]
