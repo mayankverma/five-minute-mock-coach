@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import api from '../lib/api';
 
 export interface MockFormat {
   id: string;
@@ -10,118 +11,109 @@ export interface MockFormat {
 }
 
 export interface MockQuestion {
-  label: string;
+  id: string;
   text: string;
-  questionNumber: number;
-  totalQuestions: number;
+  question_number: number;
+  total_questions: number;
+  label: string;
+}
+
+export type InputMode = 'text' | 'voice';
+
+export interface DimensionScores {
+  substance: number;
+  structure: number;
+  relevance: number;
+  credibility: number;
+  differentiation: number;
+}
+
+export interface QuestionDebrief {
+  question_id: string;
+  question_text: string;
+  question_number: number;
+  scores: DimensionScores;
+  feedback: string;
+  hire_signal: string;
+}
+
+export interface Debrief {
+  session_id: string;
+  overall_hire_signal: string;
+  question_debriefs: QuestionDebrief[];
+  arc_analysis: string;
+  story_diversity: string;
+  holistic_patterns: string;
+  interviewers_inner_monologue: string;
+  top_3_changes: string[];
 }
 
 const MOCK_FORMATS: MockFormat[] = [
   {
-    id: 'behavioral-screen',
-    emoji: '\u{1F4AC}',
+    id: 'behavioral_screen',
+    emoji: '💬',
     name: 'Behavioral Screen',
-    description: '4 questions, 30 min\nRecruiter-style',
+    description: 'Recruiter-style assessment',
     totalQuestions: 4,
     durationMin: 30,
   },
   {
-    id: 'deep-behavioral',
-    emoji: '\u{1F9E0}',
+    id: 'deep_behavioral',
+    emoji: '🧠',
     name: 'Deep Behavioral',
-    description: '6 questions, 45 min\nHiring manager depth',
+    description: 'Hiring manager depth',
     totalQuestions: 6,
     durationMin: 45,
   },
   {
-    id: 'system-design',
-    emoji: '\u{1F3AF}',
+    id: 'system_design',
+    emoji: '🎯',
     name: 'System Design',
-    description: 'Communication coaching\n60 min session',
+    description: 'Communication-focused',
     totalQuestions: 4,
     durationMin: 60,
   },
   {
     id: 'panel',
-    emoji: '\u{1F465}',
+    emoji: '👥',
     name: 'Panel',
-    description: 'Multiple personas\n5 questions, 45 min',
+    description: 'Multiple personas',
     totalQuestions: 5,
     durationMin: 45,
   },
   {
-    id: 'bar-raiser',
-    emoji: '\u{26A1}',
+    id: 'bar_raiser',
+    emoji: '⚡',
     name: 'Bar Raiser',
-    description: 'High-pressure\n6 questions, 50 min',
+    description: 'High-pressure',
     totalQuestions: 6,
     durationMin: 50,
   },
   {
-    id: 'technical-behavioral',
-    emoji: '\u{1F504}',
+    id: 'tech_behavioral',
+    emoji: '🔄',
     name: 'Technical + Behavioral',
-    description: 'Mixed format\n5 questions, 45 min',
+    description: 'Mixed format',
     totalQuestions: 5,
     durationMin: 45,
   },
 ];
 
-const SAMPLE_QUESTIONS: Record<string, string[]> = {
-  'behavioral-screen': [
-    'Tell me about yourself and why you are interested in this role.',
-    'Describe a time you had to influence a decision without having direct authority.',
-    'Give me an example of a project where you had to deal with ambiguity.',
-    'What is the most impactful thing you have accomplished in your career so far?',
-  ],
-  'deep-behavioral': [
-    'Walk me through a time you had to rebuild trust with a key stakeholder after a major setback.',
-    'Tell me about a time you made a difficult trade-off between speed and quality.',
-    'Describe a situation where you had to lead through significant organizational change.',
-    'Give me an example of when you had to deliver difficult feedback to a high performer.',
-    'Tell me about a time your team failed to meet a critical deadline. What did you do?',
-    'Describe how you have built and scaled a team from scratch.',
-  ],
-  'system-design': [
-    'Design a real-time notification system that scales to millions of users.',
-    'How would you architect a distributed job scheduling system?',
-    'Walk me through designing a content recommendation engine.',
-    'Design an API rate limiting service for a multi-tenant platform.',
-  ],
-  'panel': [
-    'How do you prioritize competing requests from multiple stakeholders?',
-    'Tell us about a time you drove alignment across engineering, product, and design.',
-    'Describe your approach to building an inclusive team culture.',
-    'Give an example of how you handled a major production incident.',
-    'What is your philosophy on technical debt and how do you manage it?',
-  ],
-  'bar-raiser': [
-    'Tell me about a time you had to make a critical decision with incomplete information under extreme time pressure.',
-    'Describe a situation where you disagreed with your leadership and what you did about it.',
-    'Give me an example of a time you had to pivot your entire strategy mid-execution.',
-    'How have you handled a situation where a team member was consistently underperforming?',
-    'Tell me about the most complex cross-functional initiative you have led.',
-    'Describe a time when you had to say no to a senior leader. How did you handle it?',
-  ],
-  'technical-behavioral': [
-    'Walk me through a complex system you designed and the key trade-offs you made.',
-    'Tell me about a time you had to debug a critical production issue under pressure.',
-    'How do you balance hands-on technical work with leadership responsibilities?',
-    'Describe a time you introduced a new technology or practice to your organization.',
-    'Give me an example of how you have mentored engineers to grow into senior roles.',
-  ],
-};
-
 export function useMock() {
-  const [selectedFormat, setSelectedFormat] = useState<string | null>(null);
+  const [activeFormat, setActiveFormat] = useState<MockFormat | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<MockQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [answerText, setAnswerText] = useState('');
+  const [inputMode, setInputMode] = useState<InputMode>('text');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [debrief, setDebrief] = useState<Debrief | null>(null);
+  const [isLoadingDebrief, setIsLoadingDebrief] = useState(false);
 
-  const activeFormat = MOCK_FORMATS.find((f) => f.id === selectedFormat) ?? null;
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Timer
   useEffect(() => {
@@ -140,70 +132,140 @@ export function useMock() {
     };
   }, [isRecording]);
 
-  const currentQuestion: MockQuestion | null =
-    activeFormat && sessionActive
-      ? {
-          label: `Question ${currentQuestionIndex + 1} of ${activeFormat.totalQuestions} — ${activeFormat.name}`,
-          text:
-            SAMPLE_QUESTIONS[activeFormat.id]?.[currentQuestionIndex] ??
-            'Tell me about a challenging situation you faced and how you handled it.',
-          questionNumber: currentQuestionIndex + 1,
-          totalQuestions: activeFormat.totalQuestions,
-        }
-      : null;
+  const currentQuestion: MockQuestion | null = questions[currentQuestionIndex] ?? null;
 
   const selectFormat = useCallback((id: string) => {
-    setSelectedFormat(id);
+    const format = MOCK_FORMATS.find((f) => f.id === id) ?? null;
+    setActiveFormat(format);
   }, []);
 
-  const startSession = useCallback(() => {
-    setSessionActive(true);
-    setCurrentQuestionIndex(0);
+  const startSession = useCallback(async () => {
+    if (!activeFormat) return;
+    try {
+      const response = await api.post('/api/mock/start', {
+        format_id: activeFormat.id,
+      });
+      const data = response.data;
+      const rawQuestions = data.questions ?? [];
+      const total = rawQuestions.length;
+      const mapped: MockQuestion[] = rawQuestions.map(
+        (q: { id?: string; text?: string; question_number?: number }, idx: number) => ({
+          id: q.id ?? String(idx),
+          text: q.text ?? '',
+          question_number: q.question_number ?? idx + 1,
+          total_questions: total,
+          label: `Question ${q.question_number ?? idx + 1} of ${total} — ${activeFormat.name}`,
+        })
+      );
+      setSessionId(data.session_id);
+      setQuestions(mapped);
+      setCurrentQuestionIndex(0);
+      setAnswerText('');
+      setElapsedSeconds(0);
+      setIsRecording(false);
+      setDebrief(null);
+      setSessionActive(true);
+    } catch (err) {
+      console.error('Failed to start session', err);
+    }
+  }, [activeFormat]);
+
+  const submitAnswer = useCallback(async () => {
+    if (!sessionId || !currentQuestion) return;
+    setIsSubmitting(true);
+    try {
+      await api.post(`/api/mock/${sessionId}/submit`, {
+        question_id: currentQuestion.id,
+        question_text: currentQuestion.text,
+        answer: answerText,
+        input_mode: inputMode,
+        question_number: currentQuestion.question_number,
+      });
+    } catch (err) {
+      console.error('Failed to submit answer', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+    setAnswerText('');
     setElapsedSeconds(0);
     setIsRecording(false);
-    setIsLoading(false);
-  }, []);
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  }, [sessionId, currentQuestion, answerText, inputMode, currentQuestionIndex, questions.length]);
+
+  const skipQuestion = useCallback(() => {
+    setAnswerText('');
+    setElapsedSeconds(0);
+    setIsRecording(false);
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  }, [currentQuestionIndex, questions.length]);
+
+  const nextQuestion = useCallback(() => {
+    setAnswerText('');
+    setElapsedSeconds(0);
+    setIsRecording(false);
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex((prev) => prev + 1);
+    }
+  }, [currentQuestionIndex, questions.length]);
+
+  const requestDebrief = useCallback(async () => {
+    if (!sessionId) return;
+    setIsLoadingDebrief(true);
+    try {
+      const response = await api.post(`/api/mock/${sessionId}/debrief`);
+      setDebrief(response.data);
+    } catch (err) {
+      console.error('Failed to load debrief', err);
+    } finally {
+      setIsLoadingDebrief(false);
+    }
+  }, [sessionId]);
 
   const endSession = useCallback(() => {
     setSessionActive(false);
-    setSelectedFormat(null);
+    setSessionId(null);
+    setQuestions([]);
     setCurrentQuestionIndex(0);
+    setAnswerText('');
     setElapsedSeconds(0);
     setIsRecording(false);
-    setIsLoading(false);
+    setIsSubmitting(false);
+    setDebrief(null);
+    setIsLoadingDebrief(false);
   }, []);
 
   const toggleRecording = useCallback(() => {
     setIsRecording((prev) => !prev);
   }, []);
 
-  const nextQuestion = useCallback(() => {
-    if (!activeFormat) return;
-    setIsRecording(false);
-    setElapsedSeconds(0);
-    if (currentQuestionIndex + 1 < activeFormat.totalQuestions) {
-      setCurrentQuestionIndex((prev) => prev + 1);
-    }
-  }, [activeFormat, currentQuestionIndex]);
-
-  const skipQuestion = useCallback(() => {
-    nextQuestion();
-  }, [nextQuestion]);
-
   return {
     formats: MOCK_FORMATS,
-    selectedFormat,
-    selectFormat,
     activeFormat,
     sessionActive,
-    startSession,
-    endSession,
+    sessionId,
+    questions,
+    currentQuestionIndex,
     currentQuestion,
     isRecording,
     elapsedSeconds,
-    toggleRecording,
-    nextQuestion,
+    answerText,
+    inputMode,
+    isSubmitting,
+    debrief,
+    isLoadingDebrief,
+    selectFormat,
+    startSession,
+    submitAnswer,
     skipQuestion,
-    isLoading,
+    nextQuestion,
+    endSession,
+    requestDebrief,
+    toggleRecording,
+    setAnswerText,
+    setInputMode,
   };
 }
