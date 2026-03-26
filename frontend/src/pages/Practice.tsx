@@ -11,29 +11,25 @@ import api from '../lib/api';
 const THEME_OPTIONS = [
   'All',
   'leadership',
-  'conflict',
-  'failure',
-  'achievement',
-  'innovation',
   'teamwork',
-  'growth',
-  'customer',
-  'execution',
   'communication',
+  'execution',
+  'innovation',
   'adaptability',
-  'ethics',
   'problem_solving',
+  'conflict_resolution',
   'self_awareness',
-  'motivation',
   'customer_focus',
+  'motivation',
+  'ethics',
 ];
 
 const SOURCE_OPTIONS: { value: string; label: string }[] = [
   { value: 'All Sources', label: 'All Sources' },
   { value: 'bank', label: 'Question Bank' },
-  { value: 'job_specific', label: 'Job-Specific' },
-  { value: 'story_specific', label: 'Story-Specific' },
-  { value: 'resume_gap', label: 'Resume Gap' },
+  { value: 'job', label: 'Job-Specific' },
+  { value: 'story', label: 'Story-Specific' },
+  { value: 'gap', label: 'Resume Gap' },
 ];
 
 const TIER_LABELS: Record<PracticeTier, string> = {
@@ -98,6 +94,20 @@ export function Practice() {
     },
   });
   const activity = activityData?.activity ?? [];
+
+  // Pre-fetch questions for quick practice preview
+  const quickThemeParam = themeFilter !== 'All' ? `&theme=${themeFilter}` : '';
+  const quickSourceParam = sourceFilter !== 'All Sources' ? `&source_filter=${sourceFilter}` : '';
+  const { data: quickPreviewData, isLoading: quickPreviewLoading } = useQuery({
+    queryKey: ['practice', 'quick-preview', themeFilter, sourceFilter],
+    queryFn: async () => {
+      const res = await api.get(`/api/practice/quick/preview?count=10${quickThemeParam}${quickSourceParam}`);
+      return res.data;
+    },
+    enabled: mode === 'quick' && activeView === 'practice' && !sessionId,
+    staleTime: 2 * 60 * 1000,
+  });
+  const quickPreviewQuestions = quickPreviewData?.questions ?? [];
 
   // Pre-fetch questions for the selected guided stage
   const { data: stagePreview, isLoading: stagePreviewLoading } = useQuery({
@@ -260,11 +270,38 @@ export function Practice() {
             </div>
           )}
 
-          {/* Start Button */}
+          {/* Start Button + Question Preview */}
           {!hasSession && (
-            <button className="btn btn-primary" onClick={handleStartQuick}>
-              Start Practice
-            </button>
+            <>
+              <button className="btn btn-primary" style={{ marginBottom: 14 }} onClick={handleStartQuick}>
+                Start Practice
+              </button>
+
+              {/* Question Preview */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">Upcoming Questions</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {quickPreviewLoading ? 'Loading...' : `${quickPreviewQuestions.length} questions`}
+                  </span>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                  {quickPreviewQuestions.length > 0 ? (
+                    quickPreviewQuestions.map((q: any, i: number) => (
+                      <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
+                        {q.question_text || q.title}
+                        {q.theme && (
+                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme}</span>
+                        )}
+                      </div>
+                    ))
+                  ) : !quickPreviewLoading ? (
+                    <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this filter.</p>
+                  ) : null}
+                </div>
+              </div>
+            </>
           )}
 
           {/* Active Session */}

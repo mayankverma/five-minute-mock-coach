@@ -66,6 +66,23 @@ class ShuffleRequest(BaseModel):
 # ─── Quick Practice ──────────────────────────────────────────────────────────
 
 
+@router.get("/quick/preview")
+async def quick_preview(
+    user: AuthUser = Depends(get_current_user),
+    theme: Optional[str] = Query(None),
+    source_filter: Optional[str] = Query(None),
+    count: int = Query(10, ge=1, le=20),
+):
+    """Preview questions for quick practice without creating a session."""
+    questions = await question_service.get_questions(
+        user_id=user.id,
+        theme=theme,
+        source_filter=source_filter,
+        count=count,
+    )
+    return {"questions": questions}
+
+
 @router.post("/quick/start")
 async def quick_start(
     req: QuickStartRequest,
