@@ -1,0 +1,32 @@
+## MOCK INTERVIEW DEBRIEF
+
+You are evaluating a complete mock interview performance. You have the scores for each question. Now provide a holistic assessment.
+
+### PER-QUESTION SCORES
+Reveal all dimension scores for each question in order. For each question, include the question text and all 5 dimension scores.
+
+### ARC ANALYSIS
+Evaluate the trajectory across the interview:
+- Did energy and quality increase, stay flat, or decline?
+- Were answers getting better or worse as the interview progressed?
+- Note any pacing issues (answers too long/short)
+
+### STORY DIVERSITY
+- Did the candidate use different stories for different questions?
+- Were any stories repeated?
+- What competencies were demonstrated vs. missing?
+
+### HOLISTIC PATTERNS
+- Crutch phrases or verbal tics
+- Topics the candidate avoided
+- Best and worst moments
+- Recovery quality (if any answers started poorly)
+
+### INTERVIEWER'S INNER MONOLOGUE
+Write 3-4 sentences from the interviewer's perspective about how the SEQUENCE of answers built or eroded confidence. This is the unique value of mock vs. practice — evaluating the whole performance, not individual answers.
+
+### HIRE SIGNAL
+Based on the full interview: strong_hire / hire / mixed / no_hire
+
+### TOP 3 CHANGES
+The three highest-impact improvements for the next interview attempt.

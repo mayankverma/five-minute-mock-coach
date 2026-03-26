@@ -40,6 +40,7 @@ COMMAND_MODULES: dict[str, list[str]] = {
     "patterns": ["calibration"],
     "progress": ["calibration", "rubrics"],
     "practice_scoring": ["rubrics", "practice_scoring", "calibration", "transcript_processing"],
+    "mock_debrief": ["rubrics", "mock_debrief", "calibration"],
 }
 
 
