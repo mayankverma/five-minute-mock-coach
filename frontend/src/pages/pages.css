@@ -198,6 +198,22 @@
 .empty-state-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
 .empty-state-desc { font-size: 12px; }
 
+/* Scorecard enhanced */
+.scorecard-condensed { display: flex; align-items: center; gap: 16px; padding: 16px 0; }
+.scorecard-avg { font-size: 28px; font-weight: 700; color: var(--primary); }
+.scorecard-avg-label { font-size: 12px; color: var(--text-muted); }
+.scorecard-feedback { font-size: 13px; line-height: 1.6; color: var(--text-secondary); flex: 1; }
+.scorecard-expand-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 13px; padding: 4px 0; }
+.scorecard-expand-btn:hover { text-decoration: underline; }
+.scorecard-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin: 12px 0 0; }
+.scorecard-tab { padding: 8px 16px; font-size: 13px; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--text-muted); }
+.scorecard-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+.scorecard-tab-panel { padding: 12px 0; font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
+.scorecard-bullets { list-style: disc; padding-left: 20px; margin: 0; }
+.scorecard-bullets li { margin-bottom: 8px; }
+.scorecard-attempts { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.scorecard-attempts span { font-weight: 600; }
+
 /* Responsive adjustments for page grids */
 @media (max-width: 768px) {
   .card-grid-2,
