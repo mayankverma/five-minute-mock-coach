@@ -73,13 +73,50 @@ async def quick_preview(
     source_filter: Optional[str] = Query(None),
     count: int = Query(10, ge=1, le=20),
 ):
-    """Preview questions for quick practice without creating a session."""
-    questions = await question_service.get_questions(
-        user_id=user.id,
-        theme=theme,
-        source_filter=source_filter,
-        count=count,
-    )
+    """Preview questions sorted by frequency with theme diversity."""
+    db = get_supabase()
+
+    # For preview, query the bank directly for a curated, sorted list
+    if not source_filter or source_filter == "bank":
+        freq_order = {"very_high": 0, "high": 1, "medium": 2}
+        query = db.table("question").select("*")
+        if theme:
+            query = query.eq("theme", theme)
+
+        # Fetch more than needed so we can diversify themes
+        pool_size = count * 5 if not theme else count * 2
+        resp = query.limit(pool_size).execute()
+        pool = resp.data or []
+
+        # Sort by frequency (very_high first)
+        pool.sort(key=lambda q: freq_order.get(q.get("frequency", "medium"), 2))
+
+        # If no theme filter, pick round-robin across themes for diversity
+        if not theme and len(pool) > count:
+            seen_themes: dict[str, int] = {}
+            diverse: list[dict] = []
+            for q in pool:
+                t = q.get("theme", "")
+                seen_themes[t] = seen_themes.get(t, 0) + 1
+                if seen_themes[t] <= 2:  # max 2 per theme
+                    diverse.append(q)
+                if len(diverse) >= count:
+                    break
+            pool = diverse
+
+        questions = pool[:count]
+        for q in questions:
+            q["_source"] = "bank"
+            q["_source_detail"] = f"From question bank — {q.get('frequency', 'medium')} frequency"
+    else:
+        # For other sources, use the weighted selection
+        questions = await question_service.get_questions(
+            user_id=user.id,
+            theme=theme,
+            source_filter=source_filter,
+            count=count,
+        )
+
     return {"questions": questions}
 
 

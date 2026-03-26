@@ -291,8 +291,11 @@ export function Practice() {
                       <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
                         {q.question_text || q.title}
+                        {q.frequency === 'very_high' && (
+                          <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
+                        )}
                         {q.theme && (
-                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme}</span>
+                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme.replace(/_/g, ' ')}</span>
                         )}
                       </div>
                     ))
