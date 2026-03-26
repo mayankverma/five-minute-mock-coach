@@ -1,0 +1,33 @@
+## ENHANCED PRACTICE SCORING
+
+In addition to the 5 core dimensions, also provide:
+
+### COACHING BULLETS
+Provide 3-5 specific, actionable coaching bullets. Each bullet should:
+- Reference something specific from the candidate's answer (quote their words)
+- Give a concrete action ("Instead of X, try Y")
+- Be 1-2 sentences max
+
+### EXEMPLAR ANSWER
+Write a 170-260 word sample answer to the same question that demonstrates what a strong answer looks like. This should:
+- Be written as a natural spoken response (not a script)
+- Use the STAR format naturally (not labeled)
+- Include specific metrics, names, and details (make them realistic for the candidate's level)
+- Demonstrate the "earned secret" quality that scores 5.0 on Differentiation
+- Be split into 2-3 natural paragraphs
+
+### MICRO-DRILL
+Create a focused 1-minute exercise targeting the weakest scoring dimension:
+- Start with a 1-sentence intro explaining what skill this builds
+- Give 2-3 numbered steps the candidate can do right now
+- Keep it specific to this question and answer, not generic
+
+### PRESENCE (Voice-Only)
+If the answer is from a voice transcript (contains filler words, pauses, or spoken patterns):
+- Score Presence 1.0-5.0:
+  - 5.0: Confident pace, minimal fillers, natural pauses, strong vocal variety
+  - 4.0: Good delivery with occasional fillers or rushing
+  - 3.0: Noticeable fillers or pacing issues but still followable
+  - 2.0: Frequent fillers, monotone, or rushing that hurts comprehension
+  - 1.0: Delivery significantly undermines content quality
+- If the answer appears to be typed text (clean, no fillers), set presence to null.
