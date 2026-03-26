@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { useDashboard } from '../hooks/useDashboard';
 import { useResume } from '../hooks/useResume';
@@ -393,6 +394,7 @@ function GeneralDashboard() {
 function JobDashboard() {
   const { activeWorkspace } = useWorkspace();
   const { jobDashboard, isLoading } = useDashboard();
+  const navigate = useNavigate();
 
   if (isLoading || !jobDashboard) {
     return (
@@ -485,6 +487,12 @@ function JobDashboard() {
                     <div className="round-name">{round.name}</div>
                     <div className="round-meta">{round.meta}</div>
                   </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => navigate(`/practice?tier=round_prep&round_id=${round.number}`)}
+                  >
+                    Practice this round
+                  </button>
                 </li>
               ))}
             </ul>
