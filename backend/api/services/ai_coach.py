@@ -39,11 +39,11 @@ class AICoachService:
                 {"role": "user", "content": message},
             ],
             temperature=0.7,
-            max_completion_tokens=2000,
+            max_completion_tokens=16000,
         )
         return response.choices[0].message.content
 
-    async def coach_json(self, command: str, user_context: dict, message: str) -> str:
+    async def coach_json(self, command: str, user_context: dict, message: str, max_tokens: int = 16000) -> str:
         """Like coach() but requests JSON output format."""
         system_prompt = PromptComposer.compose(command, user_context)
         system_prompt += (
@@ -58,10 +58,13 @@ class AICoachService:
                 {"role": "user", "content": message},
             ],
             temperature=0.5,
-            max_completion_tokens=2000,
+            max_completion_tokens=max_tokens,
             response_format={"type": "json_object"},
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        if not content:
+            raise ValueError(f"Empty response from OpenAI (finish_reason={response.choices[0].finish_reason})")
+        return content
 
     async def coach_stream(self, command: str, user_context: dict, messages: list[dict]):
         """Stream OpenAI response tokens. Accepts full conversation history."""
@@ -71,7 +74,7 @@ class AICoachService:
             model=settings.OPENAI_MODEL,
             messages=[{"role": "system", "content": system_prompt}] + messages,
             temperature=0.7,
-            max_completion_tokens=2000,
+            max_completion_tokens=16000,
             stream=True,
         )
         async for chunk in response:

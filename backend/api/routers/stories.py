@@ -118,7 +118,29 @@ async def create_story(
 ):
     """Create a new story and v1 version snapshot."""
     db = get_supabase()
+
+    # Check for duplicate title
+    existing = (
+        db.table("story")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("title", story.title)
+        .eq("status", "active")
+        .maybe_single()
+        .execute()
+    )
+    if existing and existing.data:
+        # Return the existing story instead of creating a duplicate
+        existing_story = db.table("story").select("*").eq("id", existing.data["id"]).single().execute()
+        return existing_story.data
+
     data = {"user_id": user.id, **story.model_dump(exclude_none=True)}
+
+    # Story seeds (from resume analysis) should not have strength
+    is_seed = story.notes and "[Resume seed]" in story.notes
+    if is_seed:
+        data.pop("strength", None)
+
     resp = db.table("story").insert(data).execute()
     story_row = resp.data[0]
 
@@ -361,7 +383,30 @@ async def get_story_gaps(
     user: AuthUser = Depends(get_current_user),
     workspace_id: Optional[str] = Query(None),
 ):
-    """Context-aware gap analysis. Pass workspace_id for JD-prioritized gaps."""
+    """Return cached gap analysis. Returns null if no analysis has been run yet."""
+    db = get_supabase()
+
+    # Check cache
+    query = db.table("story_gap_analysis").select("*").eq("user_id", user.id)
+    if workspace_id:
+        query = query.eq("workspace_id", workspace_id)
+    else:
+        query = query.is_("workspace_id", "null")
+
+    cached = query.maybe_single().execute()
+    if cached and cached.data:
+        return cached.data
+
+    # No cache — return null (frontend shows "Analyze Gaps" button)
+    return None
+
+
+@router.post("/gaps/analyze")
+async def analyze_story_gaps(
+    user: AuthUser = Depends(get_current_user),
+    workspace_id: Optional[str] = Query(None),
+):
+    """Run AI gap analysis, cache results, and return them."""
     db = get_supabase()
     stories_resp = (
         db.table("story")
@@ -375,7 +420,7 @@ async def get_story_gaps(
     # If no stories, return basic coverage with universal categories
     if not stories:
         from backend.api.services.story_coach import UNIVERSAL_CATEGORIES
-        return {
+        result = {
             "mode": "universal",
             "coverage_score": 0,
             "mapped_stories": [],
@@ -387,26 +432,49 @@ async def get_story_gaps(
             ],
             "concentration_risk": None,
         }
+    else:
+        # Fetch workspace if provided
+        workspace = None
+        if workspace_id:
+            try:
+                ws_resp = (
+                    db.table("job_workspace")
+                    .select("*")
+                    .eq("id", workspace_id)
+                    .eq("user_id", user.id)
+                    .maybe_single()
+                    .execute()
+                )
+                workspace = ws_resp.data if ws_resp else None
+            except Exception:
+                pass
 
-    # Fetch workspace if provided
-    workspace = None
+        user_context = await coach.build_user_context(user.id, workspace_id=workspace_id)
+        result = await story_coach.analyze_gaps(stories, user_context, workspace=workspace)
+        result["mode"] = "workspace" if workspace else "universal"
+
+    # Save to cache (upsert)
+    cache_data = {
+        "user_id": user.id,
+        "mode": result.get("mode", "universal"),
+        "coverage_score": result.get("coverage_score"),
+        "gaps": result.get("gaps", []),
+        "mapped_stories": result.get("mapped_stories", []),
+        "concentration_risk": result.get("concentration_risk"),
+    }
     if workspace_id:
-        try:
-            ws_resp = (
-                db.table("job_workspace")
-                .select("*")
-                .eq("id", workspace_id)
-                .eq("user_id", user.id)
-                .maybe_single()
-                .execute()
-            )
-            workspace = ws_resp.data if ws_resp else None
-        except Exception:
-            pass
+        cache_data["workspace_id"] = workspace_id
 
-    user_context = await coach.build_user_context(user.id, workspace_id=workspace_id)
-    result = await story_coach.analyze_gaps(stories, user_context, workspace=workspace)
-    result["mode"] = "workspace" if workspace else "universal"
+    # Delete old cache and insert new
+    del_query = db.table("story_gap_analysis").delete().eq("user_id", user.id)
+    if workspace_id:
+        del_query = del_query.eq("workspace_id", workspace_id)
+    else:
+        del_query = del_query.is_("workspace_id", "null")
+    del_query.execute()
+
+    db.table("story_gap_analysis").insert(cache_data).execute()
+
     return result
 
 
