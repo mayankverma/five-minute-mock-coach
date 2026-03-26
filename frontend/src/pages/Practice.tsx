@@ -1,21 +1,143 @@
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import './pages.css';
 import { usePractice } from '../hooks/usePractice';
-import { VoiceRecorder } from '../components/VoiceRecorder';
+import type { PracticeTier, PracticeMode, QuestionSource } from '../hooks/usePractice';
 import { Scorecard } from '../components/Scorecard';
+import { SourceIndicator } from '../components/SourceIndicator';
+
+const THEME_OPTIONS = [
+  'All',
+  'leadership',
+  'conflict',
+  'failure',
+  'achievement',
+  'innovation',
+  'teamwork',
+  'growth',
+  'customer',
+  'execution',
+  'communication',
+  'adaptability',
+  'ethics',
+  'problem_solving',
+  'self_awareness',
+  'motivation',
+  'customer_focus',
+];
+
+const SOURCE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'All Sources', label: 'All Sources' },
+  { value: 'bank', label: 'Question Bank' },
+  { value: 'job_specific', label: 'Job-Specific' },
+  { value: 'story_specific', label: 'Story-Specific' },
+  { value: 'resume_gap', label: 'Resume Gap' },
+];
+
+const TIER_LABELS: Record<PracticeTier, string> = {
+  atomic: 'Atomic',
+  session: 'Session',
+  round_prep: 'Round Prep',
+};
+
+const STAGE_NAMES: Record<number, string> = {
+  1: 'Ladder',
+  2: 'Pushback',
+  3: 'Pivot',
+  4: 'Gap',
+  5: 'Role',
+  6: 'Panel',
+  7: 'Stress',
+  8: 'Technical',
+};
 
 export function Practice() {
+  const [searchParams] = useSearchParams();
+  const [themeFilter, setThemeFilter] = useState('All');
+  const [sourceFilter, setSourceFilter] = useState('All Sources');
+  const [selectedStage, setSelectedStage] = useState(1);
+
   const {
-    drillStages,
-    currentStage,
+    mode,
+    tier,
+    sessionId,
+    questions,
     currentQuestion,
-    isRecording,
-    elapsedSeconds,
-    toggleRecording,
-    skipQuestion,
+    currentQuestionIndex,
+    attempts,
+    isScoring,
+    inputMode,
+    answerText,
+    stageInfo,
+    gateResult,
+    debrief,
+    dailyStats,
+    progression,
+    setMode,
+    setTier,
+    setInputMode,
+    setAnswerText,
+    startQuick,
+    startGuided,
     submitAnswer,
-    scorecard,
-    isLoading,
+    tryAgain,
+    shuffle,
+    nextQuestion,
+    endSession,
+    requestDebrief,
   } = usePractice();
+
+  const hasSession = sessionId !== null;
+  const isLastQuestion = currentQuestionIndex >= questions.length - 1;
+  const latestAttempt = attempts.length > 0 ? attempts[attempts.length - 1] : null;
+  const hasScored = latestAttempt !== null;
+
+  // Auto-start from URL params (e.g., ?tier=round_prep&round_id=xxx)
+  useEffect(() => {
+    const urlTier = searchParams.get('tier') as PracticeTier | null;
+    const roundId = searchParams.get('round_id');
+    if (urlTier && !hasSession) {
+      setTier(urlTier);
+      startQuick({ tier: urlTier, round_id: roundId ?? undefined });
+    }
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Progression data
+  const currentUnlocked = progression?.progression?.current_stage ?? 1;
+  const gatesPassed: string[] = progression?.progression?.gates_passed ?? [];
+  const stages: Record<string, { name: string; difficulty: string; gate_dim: string; gate_score: number; time_limit?: number; include_followups?: boolean }> = progression?.stages ?? {};
+
+  // Sync selectedStage to current unlocked on load
+  useEffect(() => {
+    if (mode === 'guided' && currentUnlocked) {
+      setSelectedStage(currentUnlocked);
+    }
+  }, [mode, currentUnlocked]);
+
+  const handleStartQuick = () => {
+    startQuick({
+      tier,
+      theme: themeFilter !== 'All' ? themeFilter : undefined,
+      source_filter: sourceFilter !== 'All Sources' ? (sourceFilter as QuestionSource) : undefined,
+    });
+  };
+
+  const handleStartGuided = () => {
+    startGuided(selectedStage);
+  };
+
+  const handleFinishOrNext = () => {
+    if (isLastQuestion) {
+      if (tier !== 'atomic') {
+        requestDebrief();
+      }
+      endSession();
+    } else {
+      nextQuestion();
+    }
+  };
 
   return (
     <div>
@@ -30,91 +152,487 @@ export function Practice() {
           Practice
         </h1>
         <p className="page-subtitle">
-          8-stage drill system with 5-dimension scoring and interviewer perspective.
+          Sharpen your interview answers with scored practice and guided drills.
         </p>
       </div>
 
-      {/* Drill Progression Card */}
+      {/* Daily Stats Bar */}
       <div className="card" style={{ marginBottom: 14 }}>
-        <div className="card-header">
-          <span className="card-title">Drill Progression</span>
-        </div>
-        <div className="card-body">
-          <div className="stepper">
-            {drillStages.map((stage, idx) => {
-              const stepNum = idx + 1;
-              const isActive = stepNum === currentStage;
-              const isDone = stepNum < currentStage;
-              const className = `step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`;
-              return (
-                <div className={className} key={stage}>
-                  <div className="step-dot">{stepNum}</div>
-                  <div className="step-label">{stage}</div>
-                </div>
-              );
-            })}
+        <div className="card-body" style={{ padding: '12px 18px' }}>
+          <div className="stat-row">
+            <span className="stat">
+              <strong>{dailyStats?.streak ?? 0}</strong> day streak
+            </span>
+            <span className="stat">
+              <strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Practice Session Card */}
-      <div className="card">
+      {/* Mode Selector Tabs */}
+      <div className="tabs">
+        <button
+          className={`tab${mode === 'quick' ? ' active' : ''}`}
+          onClick={() => { if (!hasSession) setMode('quick'); }}
+        >
+          Quick Practice
+        </button>
+        <button
+          className={`tab${mode === 'guided' ? ' active' : ''}`}
+          onClick={() => { if (!hasSession) setMode('guided'); }}
+        >
+          Guided Program
+        </button>
+      </div>
+
+      {/* ────────── Quick Practice Mode ────────── */}
+      {mode === 'quick' && (
+        <>
+          {/* Tier Selector */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+            {(['atomic', 'session', 'round_prep'] as PracticeTier[]).map((t) => (
+              <button
+                key={t}
+                className={`btn ${tier === t ? 'btn-primary' : 'btn-outline'} btn-sm`}
+                onClick={() => { if (!hasSession) setTier(t); }}
+                disabled={hasSession}
+              >
+                {TIER_LABELS[t]}
+              </button>
+            ))}
+          </div>
+
+          {/* Filter Row — only when no active session */}
+          {!hasSession && (
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'center' }}>
+              <select
+                value={themeFilter}
+                onChange={(e) => setThemeFilter(e.target.value)}
+                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card)' }}
+              >
+                {THEME_OPTIONS.map((t) => (
+                  <option key={t} value={t}>
+                    {t === 'All' ? 'All Themes' : t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sourceFilter}
+                onChange={(e) => setSourceFilter(e.target.value)}
+                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card)' }}
+              >
+                {SOURCE_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Start Button */}
+          {!hasSession && (
+            <button className="btn btn-primary" onClick={handleStartQuick}>
+              Start Practice
+            </button>
+          )}
+
+          {/* Active Session */}
+          {hasSession && currentQuestion && (
+            <ActiveSession
+              currentQuestion={currentQuestion}
+              currentQuestionIndex={currentQuestionIndex}
+              totalQuestions={questions.length}
+              inputMode={inputMode}
+              setInputMode={setInputMode}
+              answerText={answerText}
+              setAnswerText={setAnswerText}
+              isScoring={isScoring}
+              submitAnswer={submitAnswer}
+              latestAttempt={latestAttempt}
+              attempts={attempts}
+              hasScored={hasScored}
+              tryAgain={tryAgain}
+              shuffle={shuffle}
+              handleFinishOrNext={handleFinishOrNext}
+              isLastQuestion={isLastQuestion}
+              endSession={endSession}
+              gateResult={gateResult}
+              debrief={debrief}
+              tier={tier}
+            />
+          )}
+        </>
+      )}
+
+      {/* ────────── Guided Program Mode ────────── */}
+      {mode === 'guided' && (
+        <>
+          {/* Stage Stepper */}
+          {!hasSession && (
+            <>
+              <div className="card" style={{ marginBottom: 14 }}>
+                <div className="card-header">
+                  <span className="card-title">8-Stage Guided Program</span>
+                </div>
+                <div className="card-body">
+                  <div className="stepper">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((stageNum) => {
+                      const isPassed = gatesPassed.includes(String(stageNum));
+                      const isActive = stageNum === selectedStage;
+                      const isDone = isPassed;
+                      const className = `step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`;
+                      return (
+                        <div
+                          className={className}
+                          key={stageNum}
+                          onClick={() => setSelectedStage(stageNum)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="step-dot">{stageNum}</div>
+                          <div className="step-label">
+                            {STAGE_NAMES[stageNum]}
+                            {isPassed && (
+                              <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 4, padding: '1px 5px' }}>
+                                Mastered
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stage Info Card */}
+              {stages[String(selectedStage)] && (
+                <div className="card" style={{ marginBottom: 14 }}>
+                  <div className="card-header">
+                    <span className="card-title">Stage {selectedStage}: {stages[String(selectedStage)].name}</span>
+                    {selectedStage > currentUnlocked && (
+                      <span className="tag tag-amber" style={{ fontSize: 10 }}>Skipping ahead</span>
+                    )}
+                  </div>
+                  <div className="card-body">
+                    <div className="stat-row" style={{ flexWrap: 'wrap' }}>
+                      <span className="stat">
+                        Difficulty: <strong>{stages[String(selectedStage)].difficulty}</strong>
+                      </span>
+                      <span className="stat">
+                        Gate: <strong>{stages[String(selectedStage)].gate_dim}</strong> &ge; <strong>{stages[String(selectedStage)].gate_score}</strong> on 3 consecutive
+                      </span>
+                      {stages[String(selectedStage)].time_limit && (
+                        <span className="stat">
+                          Time limit: <strong>{stages[String(selectedStage)].time_limit}s</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Start Stage Button */}
+              <button className="btn btn-primary" onClick={handleStartGuided}>
+                Start Stage {selectedStage}
+              </button>
+            </>
+          )}
+
+          {/* Active Guided Session */}
+          {hasSession && currentQuestion && (
+            <ActiveSession
+              currentQuestion={currentQuestion}
+              currentQuestionIndex={currentQuestionIndex}
+              totalQuestions={questions.length}
+              inputMode={inputMode}
+              setInputMode={setInputMode}
+              answerText={answerText}
+              setAnswerText={setAnswerText}
+              isScoring={isScoring}
+              submitAnswer={submitAnswer}
+              latestAttempt={latestAttempt}
+              attempts={attempts}
+              hasScored={hasScored}
+              tryAgain={tryAgain}
+              shuffle={shuffle}
+              handleFinishOrNext={handleFinishOrNext}
+              isLastQuestion={isLastQuestion}
+              endSession={endSession}
+              gateResult={gateResult}
+              debrief={debrief}
+              tier={tier}
+              stageInfo={stageInfo}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+/* ────────── Active Session Sub-component ────────── */
+
+interface ActiveSessionProps {
+  currentQuestion: {
+    id: string;
+    question_text: string;
+    title: string;
+    _source: QuestionSource;
+    _source_detail: string;
+    theme: string;
+  };
+  currentQuestionIndex: number;
+  totalQuestions: number;
+  inputMode: 'voice' | 'text';
+  setInputMode: (m: 'voice' | 'text') => void;
+  answerText: string;
+  setAnswerText: (t: string) => void;
+  isScoring: boolean;
+  submitAnswer: () => void;
+  latestAttempt: { attemptNumber: number; average: number; scores: any } | null;
+  attempts: { attemptNumber: number; average: number; scores: any }[];
+  hasScored: boolean;
+  tryAgain: () => void;
+  shuffle: () => void;
+  handleFinishOrNext: () => void;
+  isLastQuestion: boolean;
+  endSession: () => void;
+  gateResult: { passed: boolean; stage: number; gate_dim: string; gate_score: number; next_stage: number } | null;
+  debrief: any;
+  tier: PracticeTier;
+  stageInfo?: { name: string; difficulty: string; gate_dim: string; gate_score: number; time_limit: number | null; include_followups: boolean } | null;
+}
+
+function ActiveSession({
+  currentQuestion,
+  currentQuestionIndex,
+  totalQuestions,
+  inputMode,
+  setInputMode,
+  answerText,
+  setAnswerText,
+  isScoring,
+  submitAnswer,
+  latestAttempt,
+  attempts,
+  hasScored,
+  tryAgain,
+  shuffle,
+  handleFinishOrNext,
+  isLastQuestion,
+  endSession,
+  gateResult,
+  debrief,
+  tier,
+  stageInfo,
+}: ActiveSessionProps) {
+  return (
+    <>
+      {/* Stage Info Banner (guided only) */}
+      {stageInfo && (
+        <div className="action-banner" style={{ marginBottom: 14, marginTop: 0 }}>
+          <div className="action-text">
+            <div className="action-title">Stage: {stageInfo.name}</div>
+            <div className="action-desc">
+              Gate: {stageInfo.gate_dim} &ge; {stageInfo.gate_score}
+              {stageInfo.time_limit ? ` | Time limit: ${stageInfo.time_limit}s` : ''}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Question Card */}
+      <div className="card" style={{ marginBottom: 14 }}>
         <div className="card-header">
           <span className="card-title">
-            <svg className="icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="6" y="1" width="6" height="10" rx="3" />
-              <path d="M3 8a6 6 0 0 0 12 0" />
-              <line x1="9" y1="14" x2="9" y2="17" />
-              <line x1="6" y1="17" x2="12" y2="17" />
-            </svg>
-            Practice Session
+            Question {currentQuestionIndex + 1} of {totalQuestions}
           </span>
+          <SourceIndicator
+            source={currentQuestion._source}
+            detail={currentQuestion._source_detail}
+          />
         </div>
         <div className="card-body">
-          {scorecard ? (
-            <Scorecard
-              scores={{
-                substance: scorecard.substance,
-                structure: scorecard.structure,
-                relevance: scorecard.relevance,
-                credibility: scorecard.credibility,
-                differentiation: scorecard.differentiation,
+          {/* Question Text */}
+          <p style={{ fontFamily: 'var(--ff-display)', fontSize: 20, lineHeight: 1.5, marginBottom: 18, marginTop: 0 }}>
+            {currentQuestion.question_text}
+          </p>
+
+          {currentQuestion.theme && (
+            <span className="tag tag-primary" style={{ marginBottom: 14, display: 'inline-block' }}>
+              {currentQuestion.theme.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+            </span>
+          )}
+
+          {/* Input Mode Toggle */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, marginTop: 8 }}>
+            <button
+              className={`btn btn-sm ${inputMode === 'text' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setInputMode('text')}
+            >
+              Text
+            </button>
+            <button
+              className={`btn btn-sm ${inputMode === 'voice' ? 'btn-primary' : 'btn-outline'}`}
+              onClick={() => setInputMode('voice')}
+            >
+              Voice
+            </button>
+          </div>
+
+          {/* Text Input */}
+          {inputMode === 'text' && (
+            <textarea
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+              placeholder="Type your answer here..."
+              rows={6}
+              style={{
+                width: '100%',
+                fontSize: 14,
+                lineHeight: 1.6,
+                padding: 12,
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--bg)',
+                resize: 'vertical',
+                fontFamily: 'var(--ff-body)',
+                boxSizing: 'border-box',
               }}
-              hireSignal={scorecard.hireSignal}
-              feedback={scorecard.feedback}
+              disabled={isScoring}
             />
-          ) : (
-            <div className="voice-area">
-              {/* Question Display */}
-              <div className="voice-question">
-                <div className="voice-question-label">{currentQuestion.label}</div>
-                <div className="voice-question-text">{currentQuestion.text}</div>
-              </div>
+          )}
 
-              {/* Voice Recorder */}
-              <VoiceRecorder
-                isRecording={isRecording}
-                onToggle={toggleRecording}
-                elapsedSeconds={elapsedSeconds}
-              />
+          {/* Voice placeholder */}
+          {inputMode === 'voice' && (
+            <div style={{ padding: '20px 0', color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+              Voice recording coming soon — use text mode for now.
+            </div>
+          )}
 
-              {/* Controls */}
-              <div className="voice-controls">
-                <button className="btn btn-outline btn-sm" onClick={skipQuestion}>
-                  Skip
-                </button>
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={submitAnswer}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Scoring...' : 'Submit Answer'}
-                </button>
-              </div>
+          {/* Submit Button */}
+          {!hasScored && (
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                className="btn btn-primary"
+                onClick={submitAnswer}
+                disabled={isScoring || (inputMode === 'text' && answerText.trim().length === 0)}
+              >
+                {isScoring ? 'Scoring...' : 'Submit Answer'}
+              </button>
+              {isScoring && (
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Evaluating your response...</span>
+              )}
             </div>
           )}
         </div>
       </div>
-    </div>
+
+      {/* Scorecard */}
+      {hasScored && latestAttempt && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">Score</span>
+          </div>
+          <div className="card-body">
+            <Scorecard
+              scores={{
+                substance: latestAttempt.scores.substance,
+                structure: latestAttempt.scores.structure,
+                relevance: latestAttempt.scores.relevance,
+                credibility: latestAttempt.scores.credibility,
+                differentiation: latestAttempt.scores.differentiation,
+                presence: latestAttempt.scores.presence ?? null,
+              }}
+              hireSignal={latestAttempt.scores.hire_signal}
+              feedback={latestAttempt.scores.feedback}
+              coachingBullets={latestAttempt.scores.coaching_bullets}
+              exemplarAnswer={latestAttempt.scores.exemplar_answer}
+              microDrill={latestAttempt.scores.micro_drill}
+              attempts={attempts.map((a) => ({ attemptNumber: a.attemptNumber, average: a.average }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Gate Result (guided mode) */}
+      {gateResult && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-body">
+            {gateResult.passed ? (
+              <div style={{ color: '#1d7a3f', fontWeight: 600, fontSize: 14 }}>
+                Stage passed! Unlocked Stage {gateResult.next_stage}.
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                Not yet — need {gateResult.gate_dim} &ge; {gateResult.gate_score} on 3 consecutive rounds.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action Buttons (after scoring) */}
+      {hasScored && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <button className="btn btn-outline btn-sm" onClick={tryAgain} title="Same question, refine your answer">
+            Try Again
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={shuffle} title="Same topic, different phrasing">
+            Shuffle
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={handleFinishOrNext}>
+            {isLastQuestion ? 'Finish' : 'Next Question'}
+          </button>
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={endSession}
+            style={{ marginLeft: 'auto' }}
+          >
+            End Session
+          </button>
+        </div>
+      )}
+
+      {/* Session Debrief */}
+      {debrief && (tier === 'session' || tier === 'round_prep') && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">Session Debrief</span>
+          </div>
+          <div className="card-body">
+            {typeof debrief === 'string' ? (
+              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0 }}>{debrief}</p>
+            ) : (
+              <div style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>
+                {debrief.summary && <p style={{ margin: '0 0 12px' }}>{debrief.summary}</p>}
+                {debrief.strengths && (
+                  <div style={{ marginBottom: 12 }}>
+                    <strong>Strengths:</strong>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+                      {(Array.isArray(debrief.strengths) ? debrief.strengths : [debrief.strengths]).map((s: string, i: number) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {debrief.areas_to_improve && (
+                  <div>
+                    <strong>Areas to Improve:</strong>
+                    <ul style={{ margin: '4px 0 0', paddingLeft: 20 }}>
+                      {(Array.isArray(debrief.areas_to_improve) ? debrief.areas_to_improve : [debrief.areas_to_improve]).map((a: string, i: number) => (
+                        <li key={i}>{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
