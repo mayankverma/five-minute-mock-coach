@@ -160,14 +160,17 @@ async def guided_start(
         raise HTTPException(400, f"Invalid stage: {req.stage}")
 
     # Check drill progression
-    prog_resp = (
-        db.table("drill_progression")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    progression = prog_resp.data
+    try:
+        prog_resp = (
+            db.table("drill_progression")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        progression = prog_resp.data if prog_resp else None
+    except Exception:
+        progression = None
     current_unlocked = progression["current_stage"] if progression else 1
     skipped = req.stage > current_unlocked
 
@@ -228,21 +231,24 @@ async def get_guided_progression(
     """Get user's guided drill progression and stage config."""
     db = get_supabase()
 
-    prog_resp = (
-        db.table("drill_progression")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    progression = prog_resp.data or {
-        "current_stage": 1,
-        "gates_passed": [],
-    }
+    try:
+        prog_resp = (
+            db.table("drill_progression")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        progression = (prog_resp.data if prog_resp else None) or {
+            "current_stage": 1,
+            "gates_passed": [],
+        }
+    except Exception:
+        progression = {"current_stage": 1, "gates_passed": []}
 
     return {
         "progression": progression,
-        "stages": STAGE_CONFIG,
+        "stages": {str(k): v for k, v in STAGE_CONFIG.items()},
     }
 
 
@@ -259,18 +265,21 @@ async def submit_answer(
     db = get_supabase()
 
     # Verify session belongs to user
-    session_resp = (
-        db.table("practice_session")
-        .select("*")
-        .eq("id", session_id)
-        .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
-    )
-    if not session_resp.data:
+    try:
+        session_resp = (
+            db.table("practice_session")
+            .select("*")
+            .eq("id", session_id)
+            .eq("user_id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        session = session_resp.data if session_resp else None
+    except Exception:
+        session = None
+    if not session:
         raise HTTPException(404, "Practice session not found")
 
-    session = session_resp.data
     workspace_id = session.get("workspace_id")
 
     # Build user context and score the answer
@@ -534,40 +543,45 @@ async def get_daily_stats(
     db = get_supabase()
     today = date.today().isoformat()
 
-    daily_resp = (
-        db.table("daily_practice")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("practice_date", today)
-        .maybe_single()
-        .execute()
-    )
+    try:
+        daily_resp = (
+            db.table("daily_practice")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("practice_date", today)
+            .maybe_single()
+            .execute()
+        )
+        daily_data = daily_resp.data if daily_resp else None
+    except Exception:
+        daily_data = None
 
-    if daily_resp.data:
+    if daily_data:
         return {
-            "practice_date": today,
-            "questions_answered": daily_resp.data.get("questions_answered", 0),
-            "streak_count": daily_resp.data.get("streak_count", 0),
+            "today": {"questions_answered": daily_data.get("questions_answered", 0)},
+            "streak": daily_data.get("streak_count", 0),
+            "practiced_today": True,
         }
 
     # No record for today — check yesterday for streak context
     yesterday = (date.today() - timedelta(days=1)).isoformat()
-    yesterday_resp = (
-        db.table("daily_practice")
-        .select("streak_count")
-        .eq("user_id", user.id)
-        .eq("practice_date", yesterday)
-        .maybe_single()
-        .execute()
-    )
-    last_streak = yesterday_resp.data.get("streak_count", 0) if yesterday_resp.data else 0
+    try:
+        yesterday_resp = (
+            db.table("daily_practice")
+            .select("streak_count")
+            .eq("user_id", user.id)
+            .eq("practice_date", yesterday)
+            .maybe_single()
+            .execute()
+        )
+        last_streak = (yesterday_resp.data.get("streak_count", 0) if yesterday_resp and yesterday_resp.data else 0)
+    except Exception:
+        last_streak = 0
 
     return {
-        "practice_date": today,
-        "questions_answered": 0,
-        "streak_count": 0,
-        "streak_at_risk": last_streak > 0,
-        "last_streak": last_streak,
+        "today": {"questions_answered": 0},
+        "streak": 0,
+        "practiced_today": False,
     }
 
 
@@ -604,43 +618,52 @@ async def get_practice_history(
 
 def _update_daily_practice(db, user_id: str) -> None:
     """Upsert today's daily_practice row, calculating streak from yesterday."""
-    today = date.today().isoformat()
-    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    try:
+        today = date.today().isoformat()
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
 
-    # Check if today's record already exists
-    today_resp = (
-        db.table("daily_practice")
-        .select("*")
-        .eq("user_id", user_id)
-        .eq("practice_date", today)
-        .maybe_single()
-        .execute()
-    )
+        # Check if today's record already exists
+        try:
+            today_resp = (
+                db.table("daily_practice")
+                .select("*")
+                .eq("user_id", user_id)
+                .eq("practice_date", today)
+                .maybe_single()
+                .execute()
+            )
+            today_data = today_resp.data if today_resp else None
+        except Exception:
+            today_data = None
 
-    if today_resp.data:
-        # Increment questions_answered
-        db.table("daily_practice").update({
-            "questions_answered": today_resp.data["questions_answered"] + 1,
-            "updated_at": "now()",
-        }).eq("user_id", user_id).eq("practice_date", today).execute()
-    else:
-        # New day — calculate streak from yesterday
-        yesterday_resp = (
-            db.table("daily_practice")
-            .select("streak_count")
-            .eq("user_id", user_id)
-            .eq("practice_date", yesterday)
-            .maybe_single()
-            .execute()
-        )
-        streak = (yesterday_resp.data["streak_count"] + 1) if yesterday_resp.data else 1
+        if today_data:
+            db.table("daily_practice").update({
+                "questions_answered": today_data["questions_answered"] + 1,
+                "updated_at": "now()",
+            }).eq("user_id", user_id).eq("practice_date", today).execute()
+        else:
+            # New day — calculate streak from yesterday
+            try:
+                yesterday_resp = (
+                    db.table("daily_practice")
+                    .select("streak_count")
+                    .eq("user_id", user_id)
+                    .eq("practice_date", yesterday)
+                    .maybe_single()
+                    .execute()
+                )
+                prev_streak = (yesterday_resp.data["streak_count"] if yesterday_resp and yesterday_resp.data else 0)
+            except Exception:
+                prev_streak = 0
 
-        db.table("daily_practice").insert({
-            "user_id": user_id,
-            "practice_date": today,
-            "questions_answered": 1,
-            "streak_count": streak,
-        }).execute()
+            db.table("daily_practice").insert({
+                "user_id": user_id,
+                "practice_date": today,
+                "questions_answered": 1,
+                "streak_count": prev_streak + 1,
+            }).execute()
+    except Exception:
+        pass  # Don't fail the submit if daily tracking fails
 
 
 def _check_stage_gate(db, user_id: str, stage: int) -> dict:

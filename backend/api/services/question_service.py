@@ -593,18 +593,22 @@ class QuestionService:
         """Upsert a practice record into user_question_history."""
         db = get_supabase()
 
-        existing = (
-            db.table("user_question_history")
-            .select("id, times_practiced")
-            .eq("user_id", user_id)
-            .eq("question_id", question_id)
-            .maybe_single()
-            .execute()
-        )
+        try:
+            existing = (
+                db.table("user_question_history")
+                .select("id, times_practiced")
+                .eq("user_id", user_id)
+                .eq("question_id", question_id)
+                .maybe_single()
+                .execute()
+            )
+            existing_data = existing.data if existing else None
+        except Exception:
+            existing_data = None
 
-        if existing.data:
+        if existing_data:
             update_data: dict = {
-                "times_practiced": existing.data["times_practiced"] + 1,
+                "times_practiced": existing_data["times_practiced"] + 1,
                 "last_practiced": "now()",
                 "source": source,
             }
@@ -615,7 +619,7 @@ class QuestionService:
             resp = (
                 db.table("user_question_history")
                 .update(update_data)
-                .eq("id", existing.data["id"])
+                .eq("id", existing_data["id"])
                 .execute()
             )
             return resp.data[0]
