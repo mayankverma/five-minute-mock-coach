@@ -232,3 +232,12 @@
 .source-indicator { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .source-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
 .source-detail { font-size: 12px; color: var(--text-muted); margin-left: 8px; padding-left: 8px; border-left: 2px solid; line-height: 1.4; }
+
+/* Text answer */
+.text-answer { display: flex; flex-direction: column; gap: 4px; }
+.text-answer-input { width: 100%; padding: 12px; font-size: 14px; line-height: 1.6; border: 1px solid var(--border); border-radius: 8px; resize: vertical; font-family: inherit; background: var(--bg-card); color: inherit; min-height: 120px; }
+.text-answer-input:focus { outline: none; border-color: var(--primary); }
+.text-answer-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.text-answer-footer { display: flex; justify-content: space-between; padding: 0 4px; }
+.text-answer-hint { font-size: 11px; color: var(--text-muted); }
+.text-answer-count { font-size: 11px; color: var(--text-muted); }
