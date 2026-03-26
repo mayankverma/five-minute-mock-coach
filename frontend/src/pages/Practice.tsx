@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import './pages.css';
 import { usePractice } from '../hooks/usePractice';
 import type { PracticeTier, PracticeMode, QuestionSource } from '../hooks/usePractice';
 import { Scorecard } from '../components/Scorecard';
 import { SourceIndicator } from '../components/SourceIndicator';
+import api from '../lib/api';
 
 const THEME_OPTIONS = [
   'All',
@@ -56,6 +58,7 @@ export function Practice() {
   const [themeFilter, setThemeFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All Sources');
   const [selectedStage, setSelectedStage] = useState(1);
+  const [activeView, setActiveView] = useState<'practice' | 'history'>('practice');
 
   const {
     mode,
@@ -86,6 +89,15 @@ export function Practice() {
     endSession,
     requestDebrief,
   } = usePractice();
+
+  const { data: activityData } = useQuery({
+    queryKey: ['practice', 'activity'],
+    queryFn: async () => {
+      const res = await api.get('/api/practice/activity?limit=50');
+      return res.data;
+    },
+  });
+  const activity = activityData?.activity ?? [];
 
   const hasSession = sessionId !== null;
   const isLastQuestion = currentQuestionIndex >= questions.length - 1;
@@ -173,21 +185,27 @@ export function Practice() {
       {/* Mode Selector Tabs */}
       <div className="tabs">
         <button
-          className={`tab${mode === 'quick' ? ' active' : ''}`}
-          onClick={() => { if (!hasSession) setMode('quick'); }}
+          className={`tab${activeView === 'practice' && mode === 'quick' ? ' active' : ''}`}
+          onClick={() => { if (!hasSession) { setMode('quick'); setActiveView('practice'); } }}
         >
           Quick Practice
         </button>
         <button
-          className={`tab${mode === 'guided' ? ' active' : ''}`}
-          onClick={() => { if (!hasSession) setMode('guided'); }}
+          className={`tab${activeView === 'practice' && mode === 'guided' ? ' active' : ''}`}
+          onClick={() => { if (!hasSession) { setMode('guided'); setActiveView('practice'); } }}
         >
           Guided Program
+        </button>
+        <button
+          className={`tab${activeView === 'history' ? ' active' : ''}`}
+          onClick={() => setActiveView(activeView === 'history' ? 'practice' : 'history')}
+        >
+          History
         </button>
       </div>
 
       {/* ────────── Quick Practice Mode ────────── */}
-      {mode === 'quick' && (
+      {activeView === 'practice' && mode === 'quick' && (
         <>
           {/* Tier Selector */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
@@ -266,7 +284,7 @@ export function Practice() {
       )}
 
       {/* ────────── Guided Program Mode ────────── */}
-      {mode === 'guided' && (
+      {activeView === 'practice' && mode === 'guided' && (
         <>
           {/* Stage Stepper */}
           {!hasSession && (
@@ -366,6 +384,97 @@ export function Practice() {
             />
           )}
         </>
+      )}
+      {/* ────────── History View ────────── */}
+      {activeView === 'history' && (
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Practice History</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activity.length} entries</span>
+          </div>
+          <div className="card-body" style={{ padding: 0 }}>
+            {activity.length === 0 ? (
+              <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No practice history yet. Start practicing to see your activity here.</p>
+            ) : (
+              activity.map((entry: any) => (
+                <HistoryEntry key={entry.id} entry={entry} />
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+/* ────────── HistoryEntry Sub-component ────────── */
+
+function HistoryEntry({ entry }: { entry: any }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const avg = entry.average ?? 0;
+  const time = new Date(entry.created_at).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+
+  // Color based on average
+  const scoreColor = avg >= 4 ? 'var(--c-substance)' : avg >= 3 ? '#e6a817' : 'var(--text-danger)';
+
+  return (
+    <div className="history-entry" onClick={() => setExpanded(!expanded)}>
+      <div className="history-entry-header">
+        <div style={{ flex: 1 }}>
+          <div className="history-entry-question">{entry.question_text}</div>
+          <div className="history-entry-meta">
+            <span>{time}</span>
+            <span>Attempt {entry.attempt_number}</span>
+            <span>{entry.input_mode}</span>
+          </div>
+        </div>
+        <div className="history-entry-score" style={{ color: scoreColor }}>
+          {avg.toFixed(1)}
+        </div>
+        <span className={`tag ${entry.hire_signal === 'strong_hire' || entry.hire_signal === 'hire' ? 'tag-green' : ''}`} style={{ fontSize: 11, marginLeft: 8 }}>
+          {entry.hire_signal}
+        </span>
+      </div>
+
+      {expanded && (
+        <div className="history-entry-detail">
+          <div className="score-dims" style={{ marginBottom: 12 }}>
+            {['substance', 'structure', 'relevance', 'credibility', 'differentiation'].map((dim) => {
+              const val = entry.scores?.[dim] ?? 0;
+              return (
+                <div className="score-dim" key={dim}>
+                  <span className="score-dim-label">{dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
+                  <div className="score-dim-bar">
+                    <div className="score-dim-fill" style={{ width: `${(val / 5) * 100}%`, background: `var(--c-${dim})` }} />
+                  </div>
+                  <span className="score-dim-val">{val.toFixed(1)}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: 8 }}>
+            {entry.feedback}
+          </p>
+
+          {entry.suggestion && (
+            <p style={{ fontSize: 13, color: 'var(--primary)', margin: '8px 0' }}>
+              <strong>Tip:</strong> {entry.suggestion}
+            </p>
+          )}
+
+          {entry.coaching_bullets?.length > 0 && (
+            <ul className="scorecard-bullets">
+              {entry.coaching_bullets.map((b: string, i: number) => (
+                <li key={i}>{b}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );

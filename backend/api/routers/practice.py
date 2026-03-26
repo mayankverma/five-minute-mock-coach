@@ -613,6 +613,68 @@ async def get_practice_history(
     return {"sessions": resp.data or [], "count": len(resp.data or [])}
 
 
+# ─── Activity ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/activity")
+async def get_practice_activity(
+    user: AuthUser = Depends(get_current_user),
+    limit: int = Query(30, ge=1, le=100),
+):
+    """Get detailed practice activity — individual scored answers with feedback."""
+    db = get_supabase()
+
+    resp = (
+        db.table("score_entry")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("entry_type", "practice")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    entries = resp.data or []
+
+    # Format for frontend
+    activity = []
+    for entry in entries:
+        feedback = entry.get("raw_feedback") or {}
+        activity.append({
+            "id": entry.get("id"),
+            "question_text": entry.get("context", ""),
+            "question_id": entry.get("question_id"),
+            "scores": {
+                "substance": entry.get("substance"),
+                "structure": entry.get("structure"),
+                "relevance": entry.get("relevance"),
+                "credibility": entry.get("credibility"),
+                "differentiation": entry.get("differentiation"),
+                "presence": entry.get("presence"),
+            },
+            "average": round(
+                sum(
+                    entry.get(d, 0) or 0
+                    for d in ["substance", "structure", "relevance", "credibility", "differentiation"]
+                ) / 5,
+                1,
+            ),
+            "hire_signal": entry.get("hire_signal"),
+            "feedback": feedback.get("feedback", ""),
+            "coaching_bullets": feedback.get("coaching_bullets", []),
+            "exemplar_answer": feedback.get("exemplar_answer"),
+            "micro_drill": feedback.get("micro_drill"),
+            "strongest": feedback.get("strongest", ""),
+            "weakest": feedback.get("weakest", ""),
+            "suggestion": feedback.get("suggestion", ""),
+            "attempt_number": entry.get("attempt_number", 1),
+            "input_mode": entry.get("input_mode", "text"),
+            "created_at": entry.get("created_at"),
+        })
+
+    return {"activity": activity, "count": len(activity)}
+
+
 # ─── Private helpers ──────────────────────────────────────────────────────────
 
 
