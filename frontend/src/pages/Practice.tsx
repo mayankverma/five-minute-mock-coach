@@ -99,6 +99,18 @@ export function Practice() {
   });
   const activity = activityData?.activity ?? [];
 
+  // Pre-fetch questions for the selected guided stage
+  const { data: stagePreview, isLoading: stagePreviewLoading } = useQuery({
+    queryKey: ['practice', 'stage-preview', selectedStage],
+    queryFn: async () => {
+      const res = await api.get(`/api/practice/guided/preview?stage=${selectedStage}&count=3`);
+      return res.data;
+    },
+    enabled: mode === 'guided' && activeView === 'practice' && !sessionId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const previewQuestions = stagePreview?.questions ?? [];
+
   const hasSession = sessionId !== null;
   const isLastQuestion = currentQuestionIndex >= questions.length - 1;
   const latestAttempt = attempts.length > 0 ? attempts[attempts.length - 1] : null;
@@ -186,13 +198,13 @@ export function Practice() {
       <div className="tabs">
         <button
           className={`tab${activeView === 'practice' && mode === 'quick' ? ' active' : ''}`}
-          onClick={() => { if (!hasSession) { setMode('quick'); setActiveView('practice'); } }}
+          onClick={() => { if (hasSession) endSession(); setMode('quick'); setActiveView('practice'); }}
         >
           Quick Practice
         </button>
         <button
           className={`tab${activeView === 'practice' && mode === 'guided' ? ' active' : ''}`}
-          onClick={() => { if (!hasSession) { setMode('guided'); setActiveView('practice'); } }}
+          onClick={() => { if (hasSession) endSession(); setMode('guided'); setActiveView('practice'); }}
         >
           Guided Program
         </button>
@@ -349,6 +361,31 @@ export function Practice() {
                   </div>
                 </div>
               )}
+
+              {/* Question Preview */}
+              <div className="card" style={{ marginBottom: 14 }}>
+                <div className="card-header">
+                  <span className="card-title">Questions</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {stagePreviewLoading ? 'Loading...' : `${previewQuestions.length} questions`}
+                  </span>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                  {previewQuestions.length > 0 ? (
+                    previewQuestions.map((q: any, i: number) => (
+                      <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
+                        {q.question_text || q.title}
+                        {q.theme && (
+                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme}</span>
+                        )}
+                      </div>
+                    ))
+                  ) : !stagePreviewLoading ? (
+                    <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this stage.</p>
+                  ) : null}
+                </div>
+              </div>
 
               {/* Start Stage Button */}
               <button className="btn btn-primary" onClick={handleStartGuided}>

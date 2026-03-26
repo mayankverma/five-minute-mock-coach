@@ -252,6 +252,36 @@ async def get_guided_progression(
     }
 
 
+@router.get("/guided/preview")
+async def guided_preview(
+    user: AuthUser = Depends(get_current_user),
+    stage: int = Query(1, ge=1, le=8),
+    count: int = Query(3, ge=1, le=10),
+):
+    """Preview questions for a guided stage without creating a session."""
+    stage_cfg = STAGE_CONFIG.get(stage)
+    if not stage_cfg:
+        raise HTTPException(400, f"Invalid stage: {stage}")
+
+    questions = await question_service.get_questions(
+        user_id=user.id,
+        count=count,
+        stage=stage,
+        difficulty=stage_cfg.get("difficulty"),
+    )
+
+    return {
+        "questions": questions,
+        "stage": stage,
+        "stage_info": {
+            "name": stage_cfg["name"],
+            "difficulty": stage_cfg.get("difficulty"),
+            "gate_dim": stage_cfg.get("gate_dim"),
+            "gate_score": stage_cfg.get("gate_score"),
+        },
+    }
+
+
 # ─── Submit Answer ────────────────────────────────────────────────────────────
 
 
