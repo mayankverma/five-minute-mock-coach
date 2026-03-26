@@ -9,10 +9,12 @@ from backend.api.auth import get_current_user, AuthUser
 from backend.api.db.client import get_supabase
 from backend.api.services.story_coach import StoryCoachService
 from backend.api.services.ai_coach import AICoachService
+from backend.api.services.question_generator import QuestionGenerator
 
 router = APIRouter(prefix="/api/stories", tags=["stories"])
 story_coach = StoryCoachService()
 coach = AICoachService()
+question_generator = QuestionGenerator()
 
 
 # ── Pydantic models ──
@@ -661,6 +663,14 @@ async def story_chat(req: StoryChatRequest, user: AuthUser = Depends(get_current
 
                 # Send version info to frontend
                 yield f"event: version_created\ndata: {json_mod.dumps({'story_id': story_id, 'version_num': version_num, 'change_summary': change_summary})}\n\n"
+
+                # Auto-generate practice questions for this story
+                try:
+                    story_for_gen = db.table("story").select("*").eq("id", story_id).maybe_single().execute()
+                    if story_for_gen.data:
+                        await question_generator.generate_story_questions(story_for_gen.data, user_context)
+                except Exception:
+                    pass  # Don't fail the stream if question generation fails
 
             except Exception:
                 pass  # Don't fail the stream if version creation fails

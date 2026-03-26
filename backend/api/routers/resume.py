@@ -14,11 +14,13 @@ from backend.api.db.client import get_supabase
 from backend.api.services.ai_coach import AICoachService
 from backend.api.services.resume_service import ResumeService
 from backend.api.services.resume_parser import ResumeParser
+from backend.api.services.question_generator import QuestionGenerator
 
 router = APIRouter(prefix="/api/resume", tags=["resume"])
 coach = AICoachService()
 resume_service = ResumeService()
 resume_parser = ResumeParser()
+question_generator = QuestionGenerator()
 
 
 def _extract_pdf_text(content: bytes) -> str:
@@ -142,6 +144,19 @@ async def _run_analysis(db, resume_id: str, text: str, user_context: dict, user_
         # Clear previous analysis
         db.table("resume_analysis_v2").delete().eq("resume_id", resume_id).execute()
         db.table("resume_analysis_v2").insert(analysis_data).execute()
+
+        # Auto-generate gap questions from career narrative gaps
+        gaps = analysis.get("career_narrative_gaps") or []
+        if gaps and isinstance(gaps, list):
+            try:
+                await question_generator.generate_gap_questions(
+                    user_id=user_id,
+                    gaps=[str(g) for g in gaps],
+                    user_context=user_context,
+                    resume_analysis_id=None,
+                )
+            except Exception:
+                pass  # Don't fail upload if gap question generation fails
 
         # Also save to legacy resume_analysis for backward compat
         try:
