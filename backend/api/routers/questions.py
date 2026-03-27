@@ -53,24 +53,26 @@ async def get_themes(user: AuthUser = Depends(get_current_user)):
     return {"themes": themes}
 
 
-@router.get("/{question_id}")
-async def get_question(
-    question_id: str,
-    user: AuthUser = Depends(get_current_user),
-):
-    """Get a single question by ID."""
-    db = get_supabase()
-    resp = db.table("question").select("*").eq("id", question_id).maybe_single().execute()
-    if not resp.data:
-        return {"error": "Question not found"}, 404
-    return resp.data
-
-
-# ─── Starred Questions ───
+# ─── Starred Questions (MUST be before /{question_id} catch-all) ───
 
 class StarRequest(BaseModel):
     question_id: str
     source: str = "bank"
+
+
+@router.get("/starred")
+async def get_starred_questions(
+    user: AuthUser = Depends(get_current_user),
+):
+    """Get all starred question IDs for the current user."""
+    db = get_supabase()
+    resp = (
+        db.table("user_starred_question")
+        .select("question_id, source")
+        .eq("user_id", user.id)
+        .execute()
+    )
+    return {"starred": resp.data or []}
 
 
 @router.post("/star")
@@ -101,16 +103,16 @@ async def unstar_question(
     return {"starred": False, "question_id": req.question_id}
 
 
-@router.get("/starred")
-async def get_starred_questions(
+# ─── Single question by ID (catch-all, must be last) ───
+
+@router.get("/{question_id}")
+async def get_question(
+    question_id: str,
     user: AuthUser = Depends(get_current_user),
 ):
-    """Get all starred question IDs for the current user."""
+    """Get a single question by ID."""
     db = get_supabase()
-    resp = (
-        db.table("user_starred_question")
-        .select("question_id, source")
-        .eq("user_id", user.id)
-        .execute()
-    )
-    return {"starred": resp.data or []}
+    resp = db.table("question").select("*").eq("id", question_id).maybe_single().execute()
+    if not resp or not resp.data:
+        return {"error": "Question not found"}, 404
+    return resp.data
