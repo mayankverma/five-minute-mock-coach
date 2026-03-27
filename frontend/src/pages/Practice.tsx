@@ -637,12 +637,12 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
             <span>{entry.input_mode}</span>
           </div>
         </div>
+        <span className={`tag ${scoreTagClass}`} style={{ fontSize: 11 }}>
+          {scoreLabel}
+        </span>
         <div className="history-entry-score" style={{ color: scoreColor }}>
           {avg.toFixed(1)}
         </div>
-        <span className={`tag ${scoreTagClass}`} style={{ fontSize: 11, marginLeft: 8 }}>
-          {scoreLabel}
-        </span>
       </div>
 
       {expanded && (
