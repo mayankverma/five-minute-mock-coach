@@ -574,8 +574,20 @@ export function Practice() {
       {activeView === 'history' && (
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Practice History</span>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{activity.length} entries</span>
+            <span className="card-title">
+              Practice History
+              <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>({activity.length} entries)</span>
+            </span>
+          </div>
+          {/* Column headers */}
+          <div style={{ display: 'flex', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+            <div style={{ flex: 1 }}>Question</div>
+            <div style={{ width: 90, textAlign: 'center', position: 'relative', cursor: 'help' }} title="Weak: 0-2 | Needs Work: 2-3 | Good: 3-4 | Great: 4-5">
+              Rating <span style={{ fontSize: 10, opacity: 0.6 }}>&#9432;</span>
+            </div>
+            <div style={{ width: 50, textAlign: 'right', position: 'relative', cursor: 'help' }} title="Average of 5 dimensions: Substance, Structure, Relevance, Credibility, Differentiation (1-5 scale)">
+              Score <span style={{ fontSize: 10, opacity: 0.6 }}>&#9432;</span>
+            </div>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             {activity.length === 0 ? (
@@ -637,10 +649,12 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
             <span>{entry.input_mode}</span>
           </div>
         </div>
-        <span className={`tag ${scoreTagClass}`} style={{ fontSize: 11 }}>
-          {scoreLabel}
-        </span>
-        <div className="history-entry-score" style={{ color: scoreColor }}>
+        <div style={{ width: 90, textAlign: 'center', flexShrink: 0 }}>
+          <span className={`tag ${scoreTagClass}`} style={{ fontSize: 11 }}>
+            {scoreLabel}
+          </span>
+        </div>
+        <div className="history-entry-score" style={{ color: scoreColor, width: 50, textAlign: 'right', flexShrink: 0 }}>
           {avg.toFixed(1)}
         </div>
       </div>
