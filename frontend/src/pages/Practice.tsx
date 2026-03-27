@@ -582,7 +582,7 @@ export function Practice() {
               <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No practice history yet. Start practicing to see your activity here.</p>
             ) : (
               activity.map((entry: any) => (
-                <HistoryEntry key={entry.id} entry={entry} />
+                <HistoryEntry key={entry.id} entry={entry} onPracticeAgain={(qId: string) => { startWithQuestions([qId]); setActiveView('practice'); setMode('quick'); }} />
               ))
             )}
           </div>
@@ -595,23 +595,43 @@ export function Practice() {
 
 /* ────────── HistoryEntry Sub-component ────────── */
 
-function HistoryEntry({ entry }: { entry: any }) {
+function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain: (questionId: string) => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<'coaching' | 'exemplar' | 'drill'>('coaching');
 
   const avg = entry.average ?? 0;
   const time = new Date(entry.created_at).toLocaleString('en-US', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
   });
 
-  // Color based on average
-  const scoreColor = avg >= 4 ? 'var(--c-substance)' : avg >= 3 ? '#e6a817' : 'var(--text-danger)';
+  // Score label and color based on average
+  let scoreLabel: string;
+  let scoreTagClass: string;
+  if (avg >= 4) {
+    scoreLabel = 'Great Score';
+    scoreTagClass = 'tag-green';
+  } else if (avg >= 3) {
+    scoreLabel = 'Good Score';
+    scoreTagClass = 'tag-green';
+  } else if (avg >= 2) {
+    scoreLabel = 'Needs Work';
+    scoreTagClass = '';
+  } else {
+    scoreLabel = 'Weak';
+    scoreTagClass = '';
+  }
+  const scoreColor = avg >= 4 ? '#1d7a3f' : avg >= 3 ? '#2d8a4e' : avg >= 2 ? '#e6a817' : 'var(--text-danger)';
+
+  const hasExemplar = Boolean(entry.exemplar_answer);
+  const hasDrill = Boolean(entry.micro_drill);
+  const hasBullets = entry.coaching_bullets?.length > 0;
 
   return (
     <div className="history-entry" onClick={() => setExpanded(!expanded)}>
       <div className="history-entry-header">
         <div style={{ flex: 1 }}>
-          <div className="history-entry-question">{entry.question_text}</div>
-          <div className="history-entry-meta">
+          <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text-secondary)' }}>{entry.question_text}</div>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             <span>{time}</span>
             <span>Attempt {entry.attempt_number}</span>
             <span>{entry.input_mode}</span>
@@ -620,13 +640,13 @@ function HistoryEntry({ entry }: { entry: any }) {
         <div className="history-entry-score" style={{ color: scoreColor }}>
           {avg.toFixed(1)}
         </div>
-        <span className={`tag ${entry.hire_signal === 'strong_hire' || entry.hire_signal === 'hire' ? 'tag-green' : ''}`} style={{ fontSize: 11, marginLeft: 8 }}>
-          {entry.hire_signal}
+        <span className={`tag ${scoreTagClass}`} style={{ fontSize: 11, marginLeft: 8 }}>
+          {scoreLabel}
         </span>
       </div>
 
       {expanded && (
-        <div className="history-entry-detail">
+        <div className="history-entry-detail" onClick={(e) => e.stopPropagation()}>
           <div className="score-dims" style={{ marginBottom: 12 }}>
             {['substance', 'structure', 'relevance', 'credibility', 'differentiation'].map((dim) => {
               const val = entry.scores?.[dim] ?? 0;
@@ -652,13 +672,53 @@ function HistoryEntry({ entry }: { entry: any }) {
             </p>
           )}
 
-          {entry.coaching_bullets?.length > 0 && (
-            <ul className="scorecard-bullets">
-              {entry.coaching_bullets.map((b: string, i: number) => (
-                <li key={i}>{b}</li>
-              ))}
-            </ul>
+          {/* Tabs: Coaching Notes | Exemplar Answer | Quick Drill */}
+          {(hasBullets || hasExemplar || hasDrill) && (
+            <>
+              <div className="scorecard-tabs">
+                {hasBullets && (
+                  <button className={`scorecard-tab${activeTab === 'coaching' ? ' active' : ''}`} onClick={() => setActiveTab('coaching')}>
+                    Coaching Notes
+                  </button>
+                )}
+                {hasExemplar && (
+                  <button className={`scorecard-tab${activeTab === 'exemplar' ? ' active' : ''}`} onClick={() => setActiveTab('exemplar')}>
+                    Exemplar Answer
+                  </button>
+                )}
+                {hasDrill && (
+                  <button className={`scorecard-tab${activeTab === 'drill' ? ' active' : ''}`} onClick={() => setActiveTab('drill')}>
+                    Quick Drill
+                  </button>
+                )}
+              </div>
+              <div className="scorecard-tab-panel">
+                {activeTab === 'coaching' && hasBullets && (
+                  <ul className="scorecard-bullets">
+                    {entry.coaching_bullets.map((b: string, i: number) => (
+                      <li key={i}>{b}</li>
+                    ))}
+                  </ul>
+                )}
+                {activeTab === 'exemplar' && hasExemplar && (
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{entry.exemplar_answer}</p>
+                )}
+                {activeTab === 'drill' && hasDrill && (
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{entry.micro_drill}</p>
+                )}
+              </div>
+            </>
           )}
+
+          {/* Practice Again button */}
+          <div style={{ marginTop: 12 }}>
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={(e) => { e.stopPropagation(); onPracticeAgain(entry.question_id); }}
+            >
+              Practice Again
+            </button>
+          </div>
         </div>
       )}
     </div>
