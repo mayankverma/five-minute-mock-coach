@@ -613,9 +613,12 @@ function InfoPopover({ label, children }: { label: string; children: React.React
       </button>
       {open && (
         <>
-          <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', zIndex: 100, width: 260, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.2)' }} onClick={() => setOpen(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 22px', fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', zIndex: 9999, width: 260, boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }}>
             {children}
+            <button onClick={() => setOpen(false)} style={{ marginTop: 12, width: '100%', padding: '6px', fontSize: 12, background: 'var(--bg-muted)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}>
+              Close
+            </button>
           </div>
         </>
       )}
