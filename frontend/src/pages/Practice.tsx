@@ -72,6 +72,7 @@ export function Practice() {
     tryAgain,
     shuffle,
     nextQuestion,
+    goToQuestion,
     endSession,
     requestDebrief,
   } = usePractice();
@@ -396,8 +397,11 @@ export function Practice() {
           {hasSession && currentQuestion && (
             <ActiveSession
               currentQuestion={currentQuestion}
+              questions={questions}
               currentQuestionIndex={currentQuestionIndex}
               totalQuestions={questions.length}
+              goToQuestion={goToQuestion}
+              onBackToList={endSession}
               inputMode={inputMode}
               setInputMode={setInputMode}
               answerText={answerText}
@@ -412,7 +416,7 @@ export function Practice() {
               handleFinishOrNext={handleFinishOrNext}
               isLastQuestion={isLastQuestion}
               endSession={endSession}
-              stageInfo={stageInfo}
+              stageInfo={null}
               gateResult={gateResult}
               debrief={debrief}
               tier={tier}
@@ -524,8 +528,11 @@ export function Practice() {
           {hasSession && currentQuestion && (
             <ActiveSession
               currentQuestion={currentQuestion}
+              questions={questions}
               currentQuestionIndex={currentQuestionIndex}
               totalQuestions={questions.length}
+              goToQuestion={goToQuestion}
+              onBackToList={endSession}
               inputMode={inputMode}
               setInputMode={setInputMode}
               answerText={answerText}
@@ -655,8 +662,11 @@ interface ActiveSessionProps {
     _source_detail: string;
     theme: string;
   };
+  questions: { id: string; question_text: string; title: string; theme: string }[];
   currentQuestionIndex: number;
   totalQuestions: number;
+  goToQuestion: (index: number) => void;
+  onBackToList: () => void;
   inputMode: 'voice' | 'text';
   setInputMode: (m: 'voice' | 'text') => void;
   answerText: string;
@@ -679,8 +689,11 @@ interface ActiveSessionProps {
 
 function ActiveSession({
   currentQuestion,
+  questions,
   currentQuestionIndex,
   totalQuestions,
+  goToQuestion,
+  onBackToList,
   inputMode,
   setInputMode,
   answerText,
@@ -702,14 +715,35 @@ function ActiveSession({
 }: ActiveSessionProps) {
   return (
     <>
-      {/* Stage Info Banner (guided only) */}
-      {stageInfo && (
-        <div className="action-banner" style={{ marginBottom: 14, marginTop: 0 }}>
-          <div className="action-text">
-            <div className="action-title">Stage: {stageInfo.name}</div>
-            <div className="action-desc">
-              Gate: {stageInfo.gate_dim} &ge; {stageInfo.gate_score}
-              {stageInfo.time_limit ? ` | Time limit: ${stageInfo.time_limit}s` : ''}
+      {/* Back button + Stage Info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <button className="btn btn-outline btn-sm" onClick={onBackToList}>
+          &larr; Back to Questions
+        </button>
+        {stageInfo && (
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Stage: {stageInfo.name} | Gate: {stageInfo.gate_dim} &ge; {stageInfo.gate_score}
+          </span>
+        )}
+      </div>
+
+      {/* Question Navigator (for multi-question sessions) */}
+      {totalQuestions > 1 && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-body" style={{ padding: '8px 14px' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>Questions:</span>
+              {questions.map((q, i) => (
+                <button
+                  key={q.id || i}
+                  className={`btn btn-sm ${i === currentQuestionIndex ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => goToQuestion(i)}
+                  style={{ minWidth: 32, padding: '4px 8px', fontSize: 12 }}
+                  title={q.question_text?.substring(0, 60)}
+                >
+                  {i + 1}
+                </button>
+              ))}
             </div>
           </div>
         </div>

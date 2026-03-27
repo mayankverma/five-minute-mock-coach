@@ -240,6 +240,14 @@ export function usePractice() {
     setUsedVariations([]);
   }, []);
 
+  const goToQuestion = useCallback((index: number) => {
+    setCurrentQuestionIndex(index);
+    setAttempts([]);
+    setAnswerText('');
+    setGateResult(null);
+    setUsedVariations([]);
+  }, []);
+
   const endSession = useCallback(() => {
     setSessionId(null);
     setQuestions([]);
@@ -319,6 +327,7 @@ export function usePractice() {
     tryAgain,
     shuffle,
     nextQuestion,
+    goToQuestion,
     endSession,
     requestDebrief,
   };
