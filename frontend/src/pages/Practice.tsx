@@ -580,15 +580,7 @@ export function Practice() {
             </span>
           </div>
           {/* Column headers */}
-          <div style={{ display: 'flex', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-            <div style={{ flex: 1 }}>Question</div>
-            <div style={{ width: 90, textAlign: 'center', position: 'relative', cursor: 'help' }} title="Weak: 0-2 | Needs Work: 2-3 | Good: 3-4 | Great: 4-5">
-              Rating <span style={{ fontSize: 10, opacity: 0.6 }}>&#9432;</span>
-            </div>
-            <div style={{ width: 50, textAlign: 'right', position: 'relative', cursor: 'help' }} title="Average of 5 dimensions: Substance, Structure, Relevance, Credibility, Differentiation (1-5 scale)">
-              Score <span style={{ fontSize: 10, opacity: 0.6 }}>&#9432;</span>
-            </div>
-          </div>
+          <HistoryColumnHeaders />
           <div className="card-body" style={{ padding: 0 }}>
             {activity.length === 0 ? (
               <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No practice history yet. Start practicing to see your activity here.</p>
@@ -604,6 +596,62 @@ export function Practice() {
   );
 }
 
+
+/* ────────── HistoryColumnHeaders Sub-component ────────── */
+
+function InfoPopover({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      {label}
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '50%', width: 16, height: 16, fontSize: 10, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', padding: 0, lineHeight: 1 }}
+        aria-label={`${label} info`}
+      >
+        i
+      </button>
+      {open && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setOpen(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 20px', fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', zIndex: 100, width: 260, boxShadow: '0 8px 24px rgba(0,0,0,0.15)' }}>
+            {children}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
+function HistoryColumnHeaders() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', padding: '8px 18px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+      <div style={{ flex: 1 }}>Question</div>
+      <div style={{ width: 90, textAlign: 'center' }}>
+        <InfoPopover label="Rating">
+          <strong style={{ display: 'block', marginBottom: 4 }}>Rating Scale</strong>
+          <div><span style={{ color: 'var(--text-danger)' }}>Weak</span> — Score 0 to 2</div>
+          <div><span style={{ color: '#e6a817' }}>Needs Work</span> — Score 2 to 3</div>
+          <div><span style={{ color: '#2d8a4e' }}>Good Score</span> — Score 3 to 4</div>
+          <div><span style={{ color: '#1d7a3f' }}>Great Score</span> — Score 4 to 5</div>
+        </InfoPopover>
+      </div>
+      <div style={{ width: 50, textAlign: 'right' }}>
+        <InfoPopover label="Score">
+          <strong style={{ display: 'block', marginBottom: 4 }}>Score (1-5)</strong>
+          <div>Average of 5 dimensions:</div>
+          <div style={{ marginTop: 4 }}>
+            <div>Substance</div>
+            <div>Structure</div>
+            <div>Relevance</div>
+            <div>Credibility</div>
+            <div>Differentiation</div>
+          </div>
+        </InfoPopover>
+      </div>
+    </div>
+  );
+}
 
 /* ────────── HistoryEntry Sub-component ────────── */
 
@@ -643,10 +691,17 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
       <div className="history-entry-header">
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--text-secondary)' }}>{entry.question_text}</div>
-          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text-muted)', marginTop: 4, alignItems: 'center' }}>
             <span>{time}</span>
             <span>Attempt {entry.attempt_number}</span>
             <span>{entry.input_mode}</span>
+            <button
+              className="btn btn-outline btn-sm"
+              style={{ fontSize: 11, padding: '2px 8px', marginLeft: 4 }}
+              onClick={(e) => { e.stopPropagation(); onPracticeAgain(entry.question_id); }}
+            >
+              Practice Again
+            </button>
           </div>
         </div>
         <div style={{ width: 90, textAlign: 'center', flexShrink: 0 }}>
