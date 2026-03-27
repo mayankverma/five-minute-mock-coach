@@ -339,8 +339,8 @@ export function Practice() {
                           <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
                         )}
                         {q.theme && (
-                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>
-                            {q.theme.replace(/_/g, ' ')}
+                          <span className="tag" style={{ fontSize: 9, marginLeft: 8 }}>
+                            {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                           </span>
                         )}
                       </div>
