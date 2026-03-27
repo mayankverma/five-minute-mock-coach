@@ -251,3 +251,11 @@
 .history-entry-meta { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 .history-entry-score { font-size: 20px; font-weight: 700; flex-shrink: 0; }
 .history-entry-detail { padding: 0 18px 14px; }
+
+/* Question browser */
+.question-row { padding: 12px 18px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; transition: background 0.1s; }
+.question-row:hover { background: var(--bg-muted); }
+.question-row:last-child { border-bottom: none; }
+.star-btn { background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; line-height: 1; color: var(--text-muted); transition: color 0.15s; flex-shrink: 0; }
+.star-btn:hover { color: #e6a817; }
+.star-btn.starred { color: #e6a817; }

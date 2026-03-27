@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import './pages.css';
 import { usePractice } from '../hooks/usePractice';
 import type { PracticeTier, PracticeMode, QuestionSource } from '../hooks/usePractice';
+import { useStarredQuestions } from '../hooks/useStarredQuestions';
 import { Scorecard } from '../components/Scorecard';
 import { SourceIndicator } from '../components/SourceIndicator';
 import api from '../lib/api';
@@ -24,20 +25,6 @@ const THEME_OPTIONS = [
   'ethics',
 ];
 
-const SOURCE_OPTIONS: { value: string; label: string }[] = [
-  { value: 'All Sources', label: 'All Sources' },
-  { value: 'bank', label: 'Question Bank' },
-  { value: 'job', label: 'Job-Specific' },
-  { value: 'story', label: 'Story-Specific' },
-  { value: 'gap', label: 'Resume Gap' },
-];
-
-const TIER_LABELS: Record<PracticeTier, string> = {
-  atomic: 'Atomic',
-  session: 'Session',
-  round_prep: 'Round Prep',
-};
-
 const STAGE_NAMES: Record<number, string> = {
   1: 'Ladder',
   2: 'Pushback',
@@ -55,6 +42,8 @@ export function Practice() {
   const [sourceFilter, setSourceFilter] = useState('All Sources');
   const [selectedStage, setSelectedStage] = useState(1);
   const [activeView, setActiveView] = useState<'practice' | 'history'>('practice');
+
+  const { isStarred, toggleStar } = useStarredQuestions();
 
   const {
     mode,
@@ -78,6 +67,7 @@ export function Practice() {
     setAnswerText,
     startQuick,
     startGuided,
+    startWithQuestions,
     submitAnswer,
     tryAgain,
     shuffle,
@@ -85,6 +75,11 @@ export function Practice() {
     endSession,
     requestDebrief,
   } = usePractice();
+
+  const [practiceMode, setPracticeMode] = useState<'single' | 'multi'>('single');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [previewOffset, setPreviewOffset] = useState(0);
+  const [loadedQuestions, setLoadedQuestions] = useState<any[]>([]);
 
   const { data: activityData } = useQuery({
     queryKey: ['practice', 'activity'],
@@ -96,18 +91,41 @@ export function Practice() {
   const activity = activityData?.activity ?? [];
 
   // Pre-fetch questions for quick practice preview
+  const PAGE_SIZE = 10;
+
   const quickThemeParam = themeFilter !== 'All' ? `&theme=${themeFilter}` : '';
   const quickSourceParam = sourceFilter !== 'All Sources' ? `&source_filter=${sourceFilter}` : '';
   const { data: quickPreviewData, isLoading: quickPreviewLoading } = useQuery({
-    queryKey: ['practice', 'quick-preview', themeFilter, sourceFilter],
+    queryKey: ['practice', 'quick-preview', themeFilter, sourceFilter, previewOffset],
     queryFn: async () => {
-      const res = await api.get(`/api/practice/quick/preview?count=10${quickThemeParam}${quickSourceParam}`);
+      const res = await api.get(
+        `/api/practice/quick/preview?count=${PAGE_SIZE}&offset=${previewOffset}${quickThemeParam}${quickSourceParam}`
+      );
       return res.data;
     },
     enabled: mode === 'quick' && activeView === 'practice' && !sessionId,
     staleTime: 2 * 60 * 1000,
   });
-  const quickPreviewQuestions = quickPreviewData?.questions ?? [];
+
+  useEffect(() => {
+    if (quickPreviewData?.questions) {
+      if (previewOffset === 0) {
+        setLoadedQuestions(quickPreviewData.questions);
+      } else {
+        setLoadedQuestions(prev => {
+          const existingIds = new Set(prev.map((q: any) => q.id));
+          const newOnes = quickPreviewData.questions.filter((q: any) => !existingIds.has(q.id));
+          return [...prev, ...newOnes];
+        });
+      }
+    }
+  }, [quickPreviewData, previewOffset]);
+
+  useEffect(() => {
+    setPreviewOffset(0);
+    setLoadedQuestions([]);
+    setSelectedIds(new Set());
+  }, [themeFilter, sourceFilter]);
 
   // Pre-fetch questions for the selected guided stage
   const { data: stagePreview, isLoading: stagePreviewLoading } = useQuery({
@@ -150,21 +168,13 @@ export function Practice() {
     }
   }, [mode, currentUnlocked]);
 
-  const handleStartQuick = () => {
-    startQuick({
-      tier,
-      theme: themeFilter !== 'All' ? themeFilter : undefined,
-      source_filter: sourceFilter !== 'All Sources' ? (sourceFilter as QuestionSource) : undefined,
-    });
-  };
-
   const handleStartGuided = () => {
     startGuided(selectedStage);
   };
 
   const handleFinishOrNext = () => {
     if (isLastQuestion) {
-      if (tier !== 'atomic') {
+      if (questions.length > 1) {
         requestDebrief();
       }
       endSession();
@@ -229,27 +239,13 @@ export function Practice() {
       {/* ────────── Quick Practice Mode ────────── */}
       {activeView === 'practice' && mode === 'quick' && (
         <>
-          {/* Tier Selector */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            {(['atomic', 'session', 'round_prep'] as PracticeTier[]).map((t) => (
-              <button
-                key={t}
-                className={`btn ${tier === t ? 'btn-primary' : 'btn-outline'} btn-sm`}
-                onClick={() => { if (!hasSession) setTier(t); }}
-                disabled={hasSession}
-              >
-                {TIER_LABELS[t]}
-              </button>
-            ))}
-          </div>
-
-          {/* Filter Row — only when no active session */}
+          {/* Filter Bar */}
           {!hasSession && (
-            <div style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
               <select
                 value={themeFilter}
                 onChange={(e) => setThemeFilter(e.target.value)}
-                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card)' }}
+                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)' }}
               >
                 {THEME_OPTIONS.map((t) => (
                   <option key={t} value={t}>
@@ -257,54 +253,143 @@ export function Practice() {
                   </option>
                 ))}
               </select>
-
               <select
                 value={sourceFilter}
                 onChange={(e) => setSourceFilter(e.target.value)}
-                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--card)' }}
+                style={{ fontSize: 13, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)' }}
               >
-                {SOURCE_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
-                ))}
+                <option value="All Sources">All Sources</option>
+                <option value="bank">Question Bank</option>
+                <option value="job">Job-Specific</option>
+                <option value="story">Story-Specific</option>
+                <option value="gap">Resume Gap</option>
               </select>
             </div>
           )}
 
-          {/* Start Button + Question Preview */}
+          {/* Question Browser (when no active session) */}
           {!hasSession && (
-            <>
-              <button className="btn btn-primary" style={{ marginBottom: 14 }} onClick={handleStartQuick}>
-                Start Practice
-              </button>
-
-              {/* Question Preview */}
-              <div className="card">
-                <div className="card-header">
-                  <span className="card-title">Upcoming Questions</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {quickPreviewLoading ? 'Loading...' : `${quickPreviewQuestions.length} questions`}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title">
+                  Questions
+                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                    {quickPreviewData?.total_count ?? loadedQuestions.length}
                   </span>
+                </span>
+                <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <button
+                    className={`btn btn-sm ${practiceMode === 'single' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => { setPracticeMode('single'); setSelectedIds(new Set()); }}
+                    style={{ borderRadius: 0 }}
+                  >
+                    Practice Single
+                  </button>
+                  <button
+                    className={`btn btn-sm ${practiceMode === 'multi' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setPracticeMode('multi')}
+                    style={{ borderRadius: 0 }}
+                  >
+                    Practice Multiple
+                  </button>
                 </div>
-                <div className="card-body" style={{ padding: 0 }}>
-                  {quickPreviewQuestions.length > 0 ? (
-                    quickPreviewQuestions.map((q: any, i: number) => (
-                      <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
-                        {q.question_text || q.title}
+              </div>
+
+              {/* Multi-mode action bar */}
+              {practiceMode === 'multi' && selectedIds.size > 0 && (
+                <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => startWithQuestions([...selectedIds])}
+                  >
+                    Start Session ({selectedIds.size} selected)
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setSelectedIds(new Set())}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+
+              {/* Question Rows */}
+              <div className="card-body" style={{ padding: 0 }}>
+                {loadedQuestions.length > 0 ? (
+                  loadedQuestions.map((q: any, i: number) => (
+                    <div
+                      key={q.id || i}
+                      className="question-row"
+                    >
+                      {/* Star */}
+                      <button
+                        className={`star-btn${isStarred(q.id) ? ' starred' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); toggleStar(q.id, q._source || 'bank'); }}
+                        title={isStarred(q.id) ? 'Unstar' : 'Star this question'}
+                      >
+                        {isStarred(q.id) ? '\u2605' : '\u2606'}
+                      </button>
+
+                      {/* Question text + badges */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                          {q.question_text || q.title}
+                        </span>
                         {q.frequency === 'very_high' && (
                           <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
                         )}
                         {q.theme && (
-                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme.replace(/_/g, ' ')}</span>
+                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>
+                            {q.theme.replace(/_/g, ' ')}
+                          </span>
                         )}
                       </div>
-                    ))
-                  ) : !quickPreviewLoading ? (
-                    <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this filter.</p>
-                  ) : null}
-                </div>
+
+                      {/* Action: Practice button or checkbox */}
+                      {practiceMode === 'single' ? (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => startWithQuestions([q.id])}
+                        >
+                          Practice
+                        </button>
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(q.id)}
+                          onChange={(e) => {
+                            setSelectedIds(prev => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(q.id);
+                              else next.delete(q.id);
+                              return next;
+                            });
+                          }}
+                          style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        />
+                      )}
+                    </div>
+                  ))
+                ) : quickPreviewLoading ? (
+                  <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>Loading questions...</p>
+                ) : (
+                  <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this filter.</p>
+                )}
               </div>
-            </>
+
+              {/* Load More */}
+              {quickPreviewData && loadedQuestions.length < (quickPreviewData.total_count ?? 0) && (
+                <div style={{ padding: '12px 18px', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setPreviewOffset(prev => prev + PAGE_SIZE)}
+                    disabled={quickPreviewLoading}
+                  >
+                    {quickPreviewLoading ? 'Loading...' : `Load More (${loadedQuestions.length} of ${quickPreviewData.total_count})`}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {/* Active Session */}
@@ -317,16 +402,17 @@ export function Practice() {
               setInputMode={setInputMode}
               answerText={answerText}
               setAnswerText={setAnswerText}
-              isScoring={isScoring}
               submitAnswer={submitAnswer}
+              isScoring={isScoring}
               latestAttempt={latestAttempt}
-              attempts={attempts}
               hasScored={hasScored}
+              attempts={attempts}
               tryAgain={tryAgain}
               shuffle={shuffle}
               handleFinishOrNext={handleFinishOrNext}
               isLastQuestion={isLastQuestion}
               endSession={endSession}
+              stageInfo={stageInfo}
               gateResult={gateResult}
               debrief={debrief}
               tier={tier}

@@ -4,7 +4,7 @@ import api from '../lib/api';
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
-export type PracticeTier = 'atomic' | 'session' | 'round_prep';
+export type PracticeTier = 'atomic' | 'session';
 export type PracticeMode = 'quick' | 'guided';
 export type InputMode = 'voice' | 'text';
 export type QuestionSource = 'bank' | 'job_specific' | 'story_specific' | 'resume_gap';
@@ -263,6 +263,29 @@ export function usePractice() {
     }
   }, [sessionId]);
 
+  const startWithQuestions = useCallback(async (questionIds: string[]) => {
+    try {
+      const res = await api.post('/api/practice/quick/start', {
+        question_ids: questionIds,
+      });
+      const { session_id, questions: qs, tier: resTier } = res.data;
+
+      setSessionId(session_id);
+      setQuestions(qs);
+      setCurrentQuestionIndex(0);
+      setAttempts([]);
+      setAnswerText('');
+      setGateResult(null);
+      setDebrief(null);
+      setUsedVariations([]);
+      setStageInfo(null);
+      setTier(resTier || (questionIds.length === 1 ? 'atomic' : 'session'));
+      setMode('quick');
+    } catch (err) {
+      console.error('startWithQuestions failed', err);
+    }
+  }, []);
+
   // ─── Return ───────────────────────────────────────────────────────────────
   return {
     // state
@@ -291,6 +314,7 @@ export function usePractice() {
     // actions
     startQuick,
     startGuided,
+    startWithQuestions,
     submitAnswer,
     tryAgain,
     shuffle,
