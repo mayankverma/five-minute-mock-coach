@@ -42,8 +42,9 @@ export function Practice() {
   const [sourceFilter, setSourceFilter] = useState('All Sources');
   const [selectedStage, setSelectedStage] = useState(1);
   const [activeView, setActiveView] = useState<'practice' | 'history'>('practice');
+  const [starredOnly, setStarredOnly] = useState(false);
 
-  const { isStarred, toggleStar } = useStarredQuestions();
+  const { isStarred, toggleStar, starredIds } = useStarredQuestions();
 
   const {
     mode,
@@ -265,6 +266,13 @@ export function Practice() {
                 <option value="story">Story-Specific</option>
                 <option value="gap">Resume Gap</option>
               </select>
+              <button
+                className={`btn btn-sm ${starredOnly ? 'btn-primary' : 'btn-outline'}`}
+                onClick={() => setStarredOnly(!starredOnly)}
+                title="Show only starred questions"
+              >
+                {starredOnly ? '\u2605 Starred' : '\u2606 Starred'}
+              </button>
             </div>
           )}
 
@@ -316,8 +324,12 @@ export function Practice() {
 
               {/* Question Rows */}
               <div className="card-body" style={{ padding: 0 }}>
-                {loadedQuestions.length > 0 ? (
-                  loadedQuestions.map((q: any, i: number) => (
+                {(() => {
+                  const displayQuestions = starredOnly
+                    ? loadedQuestions.filter((q: any) => isStarred(q.id))
+                    : loadedQuestions;
+                  return displayQuestions.length > 0 ? (
+                  displayQuestions.map((q: any, i: number) => (
                     <div
                       key={q.id || i}
                       className="question-row"
@@ -373,9 +385,12 @@ export function Practice() {
                   ))
                 ) : quickPreviewLoading ? (
                   <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>Loading questions...</p>
+                ) : starredOnly ? (
+                  <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No starred questions yet. Star questions with ☆ to find them here.</p>
                 ) : (
                   <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this filter.</p>
-                )}
+                );
+                })()}
               </div>
 
               {/* Load More */}
