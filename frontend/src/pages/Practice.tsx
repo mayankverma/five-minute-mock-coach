@@ -226,7 +226,7 @@ export function Practice() {
           className={`tab${activeView === 'practice' && mode === 'guided' ? ' active' : ''}`}
           onClick={() => { if (hasSession) endSession(); setMode('guided'); setActiveView('practice'); }}
         >
-          Guided Program
+          Guided Practice
         </button>
         <button
           className={`tab${activeView === 'history' ? ' active' : ''}`}
@@ -421,7 +421,7 @@ export function Practice() {
         </>
       )}
 
-      {/* ────────── Guided Program Mode ────────── */}
+      {/* ────────── Guided Practice Mode ────────── */}
       {activeView === 'practice' && mode === 'guided' && (
         <>
           {/* Stage Stepper */}
@@ -429,7 +429,7 @@ export function Practice() {
             <>
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-header">
-                  <span className="card-title">8-Stage Guided Program</span>
+                  <span className="card-title">8-Stage Guided Practice</span>
                 </div>
                 <div className="card-body">
                   <div className="stepper">
