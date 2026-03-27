@@ -24,7 +24,6 @@ coach = AICoachService()
 TIER_DEFAULTS = {
     "atomic": 1,
     "session": 5,
-    "round_prep": 5,
 }
 
 ALL_DIMENSIONS = ["substance", "structure", "relevance", "credibility", "differentiation"]
@@ -40,6 +39,7 @@ class QuickStartRequest(BaseModel):
     theme: Optional[str] = None
     source_filter: Optional[str] = None
     question_count: Optional[int] = None
+    question_ids: Optional[list[str]] = None
 
 
 class GuidedStartRequest(BaseModel):
@@ -71,53 +71,85 @@ async def quick_preview(
     user: AuthUser = Depends(get_current_user),
     theme: Optional[str] = Query(None),
     source_filter: Optional[str] = Query(None),
-    count: int = Query(10, ge=1, le=20),
+    count: int = Query(10, ge=1, le=50),
+    offset: int = Query(0, ge=0),
 ):
-    """Preview questions sorted by frequency with theme diversity."""
+    """Browse questions with pagination, sorted by starred-first then frequency."""
     db = get_supabase()
 
-    # For preview, query the bank directly for a curated, sorted list
+    # Get user's starred question IDs
+    try:
+        starred_resp = (
+            db.table("user_starred_question")
+            .select("question_id")
+            .eq("user_id", user.id)
+            .execute()
+        )
+        starred_ids = {r["question_id"] for r in (starred_resp.data or [])}
+    except Exception:
+        starred_ids = set()
+
+    freq_order = {"very_high": 0, "high": 1, "medium": 2}
+
     if not source_filter or source_filter == "bank":
-        freq_order = {"very_high": 0, "high": 1, "medium": 2}
+        # Query bank questions
         query = db.table("question").select("*")
         if theme:
             query = query.eq("theme", theme)
 
-        # Fetch more than needed so we can diversify themes
-        pool_size = count * 5 if not theme else count * 2
-        resp = query.limit(pool_size).execute()
+        # Get total count
+        count_query = db.table("question").select("id", count="exact")
+        if theme:
+            count_query = count_query.eq("theme", theme)
+        count_resp = count_query.execute()
+        total = count_resp.count or 0
+
+        # Fetch all for sorting (up to 253 questions, small enough)
+        resp = query.execute()
         pool = resp.data or []
 
-        # Sort by frequency (very_high first)
-        pool.sort(key=lambda q: freq_order.get(q.get("frequency", "medium"), 2))
+        # Sort: starred first, then frequency, then theme diversity
+        def sort_key(q):
+            is_starred = 1 if q.get("id") in starred_ids else 0
+            freq = freq_order.get(q.get("frequency", "medium"), 2)
+            return (-is_starred, freq, q.get("theme", ""), q.get("title", ""))
 
-        # If no theme filter, pick round-robin across themes for diversity
-        if not theme and len(pool) > count:
-            seen_themes: dict[str, int] = {}
-            diverse: list[dict] = []
+        pool.sort(key=sort_key)
+
+        # If no theme filter, enforce theme diversity (max 2 consecutive same theme)
+        if not theme:
+            diverse = []
+            theme_streak = {}
             for q in pool:
                 t = q.get("theme", "")
-                seen_themes[t] = seen_themes.get(t, 0) + 1
-                if seen_themes[t] <= 2:  # max 2 per theme
+                theme_streak[t] = theme_streak.get(t, 0) + 1
+                if theme_streak[t] <= 2:
                     diverse.append(q)
-                if len(diverse) >= count:
-                    break
-            pool = diverse
+                # Reset other theme counters when a new theme appears
+            pool = diverse if diverse else pool
 
-        questions = pool[:count]
-        for q in questions:
+        # Apply pagination
+        page = pool[offset:offset + count]
+
+        # Annotate with source and starred
+        for q in page:
             q["_source"] = "bank"
             q["_source_detail"] = f"From question bank — {q.get('frequency', 'medium')} frequency"
+            q["starred"] = q.get("id") in starred_ids
+
+        return {"questions": page, "total_count": total}
+
     else:
-        # For other sources, use the weighted selection
+        # For other sources, use question service
         questions = await question_service.get_questions(
             user_id=user.id,
             theme=theme,
             source_filter=source_filter,
             count=count,
         )
-
-    return {"questions": questions}
+        for q in questions:
+            q["starred"] = q.get("id") in starred_ids
+        return {"questions": questions, "total_count": len(questions)}
 
 
 @router.post("/quick/start")
@@ -132,6 +164,59 @@ async def quick_start(
         raise HTTPException(400, f"Invalid tier: {req.tier}. Must be one of: {list(TIER_DEFAULTS.keys())}")
 
     count = req.question_count or TIER_DEFAULTS[req.tier]
+
+    # If specific question IDs provided, use them directly
+    if req.question_ids and len(req.question_ids) > 0:
+        # Fetch the specified questions from the bank
+        q_resp = (
+            db.table("question")
+            .select("*")
+            .in_("id", req.question_ids)
+            .execute()
+        )
+        questions = q_resp.data or []
+
+        # Also check story_question and gap_question for non-bank IDs
+        found_ids = {q["id"] for q in questions}
+        missing_ids = [qid for qid in req.question_ids if qid not in found_ids]
+        if missing_ids:
+            sq_resp = db.table("story_question").select("*").in_("id", missing_ids).execute()
+            for sq in (sq_resp.data or []):
+                sq["question_text"] = sq.get("question_text", "")
+                sq["_source"] = "story_specific"
+                questions.append(sq)
+
+            found_ids = {q["id"] for q in questions}
+            still_missing = [qid for qid in req.question_ids if qid not in found_ids]
+            if still_missing:
+                gq_resp = db.table("gap_question").select("*").in_("id", still_missing).execute()
+                for gq in (gq_resp.data or []):
+                    gq["question_text"] = gq.get("question_text", "")
+                    gq["_source"] = "resume_gap"
+                    questions.append(gq)
+
+        if not questions:
+            raise HTTPException(404, "No questions found for the provided IDs")
+
+        # Determine tier based on count
+        tier = "atomic" if len(questions) == 1 else "session"
+
+        session_data = {
+            "user_id": user.id,
+            "tier": tier,
+            "question_ids": [q.get("id", "") for q in questions],
+        }
+        if req.workspace_id:
+            session_data["workspace_id"] = req.workspace_id
+
+        session_resp = db.table("practice_session").insert(session_data).execute()
+        session = session_resp.data[0]
+
+        return {
+            "session_id": session["id"],
+            "questions": questions,
+            "tier": tier,
+        }
 
     # For round_prep with round_id, fetch round context
     round_context = None
