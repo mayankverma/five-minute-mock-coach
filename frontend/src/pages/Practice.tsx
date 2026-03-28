@@ -275,17 +275,35 @@ export function Practice() {
               </button>
               <button
                 className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setLoadedQuestions(prev => {
-                    const shuffled = [...prev];
-                    for (let i = shuffled.length - 1; i > 0; i--) {
-                      const j = Math.floor(Math.random() * (i + 1));
-                      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-                    }
-                    return shuffled;
-                  });
+                onClick={async () => {
+                  // Keep starred questions, fetch fresh random ones for the rest
+                  const kept = loadedQuestions.filter((q: any) => isStarred(q.id));
+                  const keptIds = kept.map((q: any) => q.id);
+                  const needed = Math.max(10 - kept.length, 5);
+                  try {
+                    const params = new URLSearchParams({
+                      count: String(needed),
+                      shuffle: 'true',
+                      exclude_ids: keptIds.join(','),
+                    });
+                    if (themeFilter !== 'All') params.set('theme', themeFilter);
+                    if (sourceFilter !== 'All Sources') params.set('source_filter', sourceFilter);
+                    const res = await api.get(`/api/practice/quick/preview?${params}`);
+                    const fresh = res.data.questions || [];
+                    setLoadedQuestions([...kept, ...fresh]);
+                  } catch {
+                    // Fallback: just shuffle what we have
+                    setLoadedQuestions(prev => {
+                      const shuffled = [...prev];
+                      for (let i = shuffled.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                      }
+                      return shuffled;
+                    });
+                  }
                 }}
-                title="Randomize question order"
+                title="Keep starred, replace others with fresh random questions"
               >
                 Shuffle
               </button>

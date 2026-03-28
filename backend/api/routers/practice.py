@@ -73,8 +73,13 @@ async def quick_preview(
     source_filter: Optional[str] = Query(None),
     count: int = Query(10, ge=1, le=50),
     offset: int = Query(0, ge=0),
+    shuffle: bool = Query(False),
+    exclude_ids: Optional[str] = Query(None),
 ):
-    """Browse questions with pagination, sorted by starred-first then frequency."""
+    """Browse questions with pagination, sorted by starred-first then frequency.
+
+    When shuffle=True, returns a random selection excluding exclude_ids (comma-separated).
+    """
     db = get_supabase()
 
     # Get user's starred question IDs
@@ -90,6 +95,11 @@ async def quick_preview(
         starred_ids = set()
 
     freq_order = {"very_high": 0, "high": 1, "medium": 2}
+
+    # Parse exclude_ids if provided (for shuffle)
+    excluded = set()
+    if exclude_ids:
+        excluded = {eid.strip() for eid in exclude_ids.split(",") if eid.strip()}
 
     if not source_filter or source_filter == "bank":
         # Query bank questions
@@ -108,28 +118,34 @@ async def quick_preview(
         resp = query.execute()
         pool = resp.data or []
 
-        # Sort: starred first, then frequency, then theme diversity
-        def sort_key(q):
-            is_starred = 1 if q.get("id") in starred_ids else 0
-            freq = freq_order.get(q.get("frequency", "medium"), 2)
-            return (-is_starred, freq, q.get("theme", ""), q.get("title", ""))
+        if shuffle:
+            # Shuffle mode: exclude specified IDs, return random selection
+            available = [q for q in pool if q.get("id") not in excluded]
+            import random as _random
+            _random.shuffle(available)
+            page = available[:count]
+        else:
+            # Normal mode: starred first, frequency sorted, theme diverse
+            def sort_key(q):
+                is_starred = 1 if q.get("id") in starred_ids else 0
+                freq = freq_order.get(q.get("frequency", "medium"), 2)
+                return (-is_starred, freq, q.get("theme", ""), q.get("title", ""))
 
-        pool.sort(key=sort_key)
+            pool.sort(key=sort_key)
 
-        # If no theme filter, enforce theme diversity (max 2 consecutive same theme)
-        if not theme:
-            diverse = []
-            theme_streak = {}
-            for q in pool:
-                t = q.get("theme", "")
-                theme_streak[t] = theme_streak.get(t, 0) + 1
-                if theme_streak[t] <= 2:
-                    diverse.append(q)
-                # Reset other theme counters when a new theme appears
-            pool = diverse if diverse else pool
+            # If no theme filter, enforce theme diversity (max 2 consecutive same theme)
+            if not theme:
+                diverse = []
+                theme_streak = {}
+                for q in pool:
+                    t = q.get("theme", "")
+                    theme_streak[t] = theme_streak.get(t, 0) + 1
+                    if theme_streak[t] <= 2:
+                        diverse.append(q)
+                pool = diverse if diverse else pool
 
-        # Apply pagination
-        page = pool[offset:offset + count]
+            # Apply pagination
+            page = pool[offset:offset + count]
 
         # Annotate with source and starred
         for q in page:
