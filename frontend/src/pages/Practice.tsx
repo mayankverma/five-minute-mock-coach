@@ -568,9 +568,9 @@ export function Practice() {
                 </div>
               </div>
 
-              {/* Start Stage Button */}
+              {/* Practice Stage Button */}
               <button className="btn btn-primary" onClick={handleStartGuided}>
-                Start Stage {selectedStage}
+                Practice Stage {selectedStage}
               </button>
             </>
           )}
