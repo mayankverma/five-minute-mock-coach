@@ -480,6 +480,8 @@ export function Practice() {
           {/* Stage Stepper */}
           {!hasSession && (
             <>
+              <GuidedPracticeInfo />
+
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-header">
                   <span className="card-title">8-Stage Guided Practice</span>
@@ -630,6 +632,82 @@ export function Practice() {
   );
 }
 
+
+/* ────────── GuidedPracticeInfo Sub-component ────────── */
+
+const STAGE_DETAILS: Record<number, { name: string; description: string; tests: string; gate: string }> = {
+  1: { name: 'Ladder', description: 'Tell the same story at 30s, 60s, 90s, and 3 minutes', tests: 'Can you structure an answer at all?', gate: 'Structure >= 3.5' },
+  2: { name: 'Pushback', description: 'Handle skepticism, interruption, "so what?" pressure', tests: 'Can you hold up when challenged?', gate: 'Credibility >= 3.5' },
+  3: { name: 'Pivot', description: 'Redirect when a question doesn\'t match your prep', tests: 'Can you adapt on the fly?', gate: 'Relevance >= 3.5' },
+  4: { name: 'Gap', description: 'Handle "I don\'t have an example for that" gracefully', tests: 'Can you be honest without crumbling?', gate: 'Credibility >= 4.0' },
+  5: { name: 'Role', description: 'Handle role-specific specialist scrutiny', tests: 'Can you go deep under expert questioning?', gate: 'Substance >= 4.0' },
+  6: { name: 'Panel', description: 'Multiple interviewer personas simultaneously', tests: 'Can you manage competing dynamics?', gate: 'All dims >= 4.0' },
+  7: { name: 'Stress', description: 'High-pressure simulation with time crunch and curveballs', tests: 'Can you perform under maximum pressure?', gate: 'All dims >= 4.0' },
+  8: { name: 'Technical', description: 'Thinking out loud, clarification-seeking, tradeoff articulation', tests: 'Can you communicate technical decisions?', gate: 'Structure + Substance >= 4.5' },
+};
+
+function GuidedPracticeInfo() {
+  const [showDetails, setShowDetails] = useState(false);
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div className="card-body" style={{ padding: '14px 18px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ fontSize: 20, lineHeight: 1 }}>&#127919;</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Build interview skills progressively</div>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+              Each stage builds on the last. Master structuring answers before handling pushback. Handle pushback before pivoting under pressure. Earn your way through — or skip ahead if you're ready.
+            </p>
+            <button
+              className="scorecard-expand-btn"
+              onClick={() => setShowDetails(!showDetails)}
+              style={{ marginTop: 8 }}
+            >
+              {showDetails ? 'Hide stage details' : 'Learn about each stage'}
+            </button>
+          </div>
+        </div>
+
+        {showDetails && (
+          <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: 12 }}>
+                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Stage</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>What you practice</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Why this order</th>
+                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Gate to advance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(STAGE_DETAILS).map(([num, stage]) => (
+                  <tr key={num} style={{ borderTop: '1px solid var(--border-light)' }}>
+                    <td style={{ padding: '8px', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {num}. {stage.name}
+                    </td>
+                    <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>
+                      {stage.description}
+                    </td>
+                    <td style={{ padding: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      {stage.tests}
+                    </td>
+                    <td style={{ padding: '8px' }}>
+                      <span className="tag" style={{ fontSize: 10 }}>{stage.gate}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '12px 0 0', lineHeight: 1.5 }}>
+              Score 1-5 on each dimension after every answer. Meet the gate threshold on 3 consecutive rounds to unlock the next stage. You can skip ahead, but mastery badges are only earned through the gates.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ────────── HistoryColumnHeaders Sub-component ────────── */
 
