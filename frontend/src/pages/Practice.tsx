@@ -273,6 +273,22 @@ export function Practice() {
               >
                 {starredOnly ? '\u2605 Starred' : '\u2606 Starred'}
               </button>
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => {
+                  setLoadedQuestions(prev => {
+                    const shuffled = [...prev];
+                    for (let i = shuffled.length - 1; i > 0; i--) {
+                      const j = Math.floor(Math.random() * (i + 1));
+                      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    }
+                    return shuffled;
+                  });
+                }}
+                title="Randomize question order"
+              >
+                Shuffle
+              </button>
             </div>
           )}
 
