@@ -39,41 +39,48 @@ const JOB_NAV: { group: string; items: NavItem[] }[] = [
   { group: 'Track', items: [{ to: '/debrief', label: 'Debrief' }, { to: '/progress', label: 'Progress' }] },
 ];
 
-export function Sidebar() {
+export function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const { isJobWorkspace } = useWorkspace();
   const { user } = useAuth();
   const nav = isJobWorkspace ? JOB_NAV : GENERAL_NAV;
   const initials = user?.email?.slice(0, 2).toUpperCase() || '?';
 
   return (
-    <aside className="sidebar">
-      <nav className="sidebar-nav">
-        {nav.map(({ group, items }) => (
-          <div className="sb-group" key={group}>
-            <div className="sb-label">{group}</div>
-            {items.map((item) => (
-              <NavLink
-                key={item.to + item.label}
-                to={item.to}
-                className={({ isActive }) => `sb-item ${isActive ? 'active' : ''}`}
-                end={item.to === '/'}
-              >
-                {item.label}
-                {item.badge && <span className="sb-badge">{item.badge}</span>}
-              </NavLink>
+    <aside className={`sidebar${collapsed ? ' collapsed' : ''}`}>
+      <button className="sb-collapse-btn" onClick={onToggle} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+        {collapsed ? '\u25B6' : '\u25C0'}
+      </button>
+      {!collapsed && (
+        <>
+          <nav className="sidebar-nav">
+            {nav.map(({ group, items }) => (
+              <div className="sb-group" key={group}>
+                <div className="sb-label">{group}</div>
+                {items.map((item) => (
+                  <NavLink
+                    key={item.to + item.label}
+                    to={item.to}
+                    className={({ isActive }) => `sb-item ${isActive ? 'active' : ''}`}
+                    end={item.to === '/'}
+                  >
+                    {item.label}
+                    {item.badge && <span className="sb-badge">{item.badge}</span>}
+                  </NavLink>
+                ))}
+              </div>
             ))}
+          </nav>
+          <div className="sb-bottom">
+            <div className="sb-user">
+              <div className="sb-user-avatar">{initials}</div>
+              <div>
+                <div className="sb-user-name">{user?.email?.split('@')[0] || 'User'}</div>
+                <div className="sb-user-plan">Free Plan</div>
+              </div>
+            </div>
           </div>
-        ))}
-      </nav>
-      <div className="sb-bottom">
-        <div className="sb-user">
-          <div className="sb-user-avatar">{initials}</div>
-          <div>
-            <div className="sb-user-name">{user?.email?.split('@')[0] || 'User'}</div>
-            <div className="sb-user-plan">Free Plan</div>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </aside>
   );
 }
