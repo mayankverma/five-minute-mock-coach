@@ -205,7 +205,7 @@ export function Practice() {
           <p className="page-subtitle" style={{ margin: 0 }}>
             Sharpen your interview answers with scored practice and guided drills.
           </p>
-          <div style={{ display: 'flex', gap: 12, padding: '4px 12px', background: 'var(--bg-muted)', borderRadius: 6, fontSize: 13 }}>
+          <div style={{ display: 'flex', gap: 12, padding: '5px 14px', background: '#fff', borderRadius: 20, fontSize: 13, border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <span><strong>{dailyStats?.streak ?? 0}</strong> day streak</span>
             <span><strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today</span>
           </div>
