@@ -172,7 +172,7 @@ export function Practice() {
   }, [mode, currentUnlocked]);
 
   const handleStartGuided = () => {
-    startGuided(selectedStage);
+    startGuided(selectedStage, { question_count: 10 });
   };
 
   const handleFinishOrNext = () => {

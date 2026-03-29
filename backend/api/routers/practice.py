@@ -413,40 +413,19 @@ async def guided_preview(
     stage: int = Query(1, ge=1, le=8),
     count: int = Query(10, ge=1, le=20),
 ):
-    """Preview questions for a guided stage — theme-diverse, frequency-sorted."""
-    db = get_supabase()
+    """Preview questions for a guided stage using 4-source weighted selection."""
     stage_cfg = STAGE_CONFIG.get(stage)
     if not stage_cfg:
         raise HTTPException(400, f"Invalid stage: {stage}")
 
-    difficulty = stage_cfg.get("difficulty")
-    freq_order = {"very_high": 0, "high": 1, "medium": 2}
-
-    # Query bank questions filtered by difficulty
-    query = db.table("question").select("*")
-    if difficulty:
-        query = query.eq("difficulty", difficulty)
-    resp = query.execute()
-    pool = resp.data or []
-
-    # Sort by frequency
-    pool.sort(key=lambda q: (freq_order.get(q.get("frequency", "medium"), 2), q.get("theme", "")))
-
-    # Enforce theme diversity — max 2 per theme
-    diverse: list[dict] = []
-    theme_count: dict[str, int] = {}
-    for q in pool:
-        t = q.get("theme", "")
-        theme_count[t] = theme_count.get(t, 0) + 1
-        if theme_count[t] <= 2:
-            diverse.append(q)
-        if len(diverse) >= count:
-            break
-
-    questions = diverse[:count]
-    for q in questions:
-        q["_source"] = "bank"
-        q["_source_detail"] = f"From question bank — {q.get('frequency', 'medium')} frequency"
+    # Use the 4-source weighted selection (bank + job + story + gap)
+    # This considers workspace context, story gaps, resume gaps, and bank
+    questions = await question_service.get_questions(
+        user_id=user.id,
+        count=count,
+        stage=stage,
+        difficulty=stage_cfg.get("difficulty"),
+    )
 
     return {
         "questions": questions,
