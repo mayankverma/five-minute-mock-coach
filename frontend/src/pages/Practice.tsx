@@ -680,7 +680,7 @@ function PreviousAttempts({ attempts }: { attempts: any[] }) {
                 className="history-entry"
               >
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 60 }}>{time}</span>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Attempt {a.attempt_number || i + 1}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Attempt {attempts.length - i}</span>
                 <span style={{ flex: 1 }} />
                 <span className={`tag ${avg >= 3 ? 'tag-green' : ''}`} style={{ fontSize: 10 }}>{scoreLabel}</span>
                 <span style={{ fontWeight: 700, color: scoreColor, fontSize: 16, minWidth: 30, textAlign: 'right' }}>{avg.toFixed(1)}</span>
