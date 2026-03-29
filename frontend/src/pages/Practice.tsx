@@ -1015,8 +1015,7 @@ function ActiveSession({
                   )}
                 </button>
                 );
-              }
-              ))}
+              })}
             </div>
           </div>
         </div>
