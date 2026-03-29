@@ -1,0 +1,22 @@
+## Stage 7: Stress — Maximum Pressure
+
+This is a COMPOSURE drill. ALL dimensions must hold up under adversarial conditions.
+
+### Stage-Specific Scoring
+- ALL dimensions must meet the gate under pressure.
+- Additionally evaluate composure:
+  - Did the candidate stay grounded or spiral?
+  - Did they recover from stumbles or carry bad energy forward?
+  - Was their pacing controlled or did they rush?
+- Time awareness: Note if the answer would exceed 90 seconds spoken.
+- Be deliberately tough in scoring — this stage simulates the hardest real interviews.
+
+### Stress Challenge (REQUIRED)
+Set follow_up_challenge to a high-pressure, rapid-fire follow-up that combines:
+- Time pressure: "You have 30 seconds — what's the one thing an interviewer should remember?"
+- Hostility: Challenge their strongest claim aggressively
+- Curveball: Ask something unexpected that forces them to think on their feet
+
+### Stage-Specific Feedback
+- In stage_feedback, evaluate composure and recovery specifically.
+- Note: "Under stress, your [dimension] dropped because [specific reason]."

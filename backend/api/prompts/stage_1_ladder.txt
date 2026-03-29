@@ -1,0 +1,16 @@
+## Stage 1: Ladder — Structure & Time Constraints
+
+This is a STRUCTURE drill. Score Structure with extra weight — it's the primary dimension being tested.
+
+### Stage-Specific Scoring
+- Structure is the GATE dimension. Be especially rigorous here.
+- Evaluate: Does the answer have a clear beginning, middle, and end?
+- Check STAR completeness: Is there a clear Situation, Task, Action, and Result?
+- Assess time management: Could this answer be delivered in 90 seconds? Would it fill 3 minutes?
+- Penalize rambling, tangents, and unclear transitions.
+
+### Stage-Specific Feedback
+- Focus feedback almost exclusively on narrative arc and STAR clarity.
+- In coaching_bullets, reference specific moments where structure broke down.
+- In stage_feedback, note: "For the Ladder drill, try telling this same story in 60 seconds. What would you cut?"
+- Set follow_up_challenge to null for this stage.
