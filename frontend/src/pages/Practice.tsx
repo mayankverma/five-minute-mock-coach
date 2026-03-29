@@ -453,6 +453,7 @@ export function Practice() {
               totalQuestions={questions.length}
               goToQuestion={goToQuestion}
               onBackToList={endSession}
+              pastActivity={currentQuestion ? activity.filter((a: any) => a.question_id === currentQuestion.id) : []}
               inputMode={inputMode}
               setInputMode={setInputMode}
               answerText={answerText}
@@ -587,6 +588,7 @@ export function Practice() {
               totalQuestions={questions.length}
               goToQuestion={goToQuestion}
               onBackToList={endSession}
+              pastActivity={currentQuestion ? activity.filter((a: any) => a.question_id === currentQuestion.id) : []}
               inputMode={inputMode}
               setInputMode={setInputMode}
               answerText={answerText}
@@ -635,6 +637,111 @@ export function Practice() {
   );
 }
 
+
+/* ────────── PreviousAttempts Sub-component ────────── */
+
+function PreviousAttempts({ attempts }: { attempts: any[] }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Record<string, 'coaching' | 'exemplar' | 'drill'>>({});
+
+  if (attempts.length === 0) return null;
+
+  const best = Math.max(...attempts.map((a: any) => a.average ?? 0));
+
+  return (
+    <div className="card" style={{ marginBottom: 14 }}>
+      <div className="card-header">
+        <span className="card-title">
+          Previous Attempts
+          <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 6 }}>({attempts.length})</span>
+        </span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Best: {best.toFixed(1)}</span>
+      </div>
+      <div className="card-body" style={{ padding: 0 }}>
+        {attempts.map((a: any, i: number) => {
+          const avg = a.average ?? 0;
+          const time = new Date(a.created_at).toLocaleString('en-US', {
+            month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+          });
+          const scoreColor = avg >= 4 ? '#1d7a3f' : avg >= 3 ? '#2d8a4e' : avg >= 2 ? '#e6a817' : 'var(--text-danger)';
+          const scoreLabel = avg >= 4 ? 'Great' : avg >= 3 ? 'Good' : avg >= 2 ? 'Needs Work' : 'Weak';
+          const isOpen = expandedId === (a.id || String(i));
+          const tabKey = a.id || String(i);
+          const tab = activeTab[tabKey] || 'coaching';
+          const hasBullets = a.coaching_bullets?.length > 0;
+          const hasExemplar = Boolean(a.exemplar_answer);
+          const hasDrill = Boolean(a.micro_drill);
+
+          return (
+            <div key={a.id || i} style={{ borderBottom: '1px solid var(--border-light)' }}>
+              <div
+                onClick={() => setExpandedId(isOpen ? null : (a.id || String(i)))}
+                style={{ padding: '10px 18px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}
+                className="history-entry"
+              >
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 60 }}>{time}</span>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Attempt {a.attempt_number || i + 1}</span>
+                <span style={{ flex: 1 }} />
+                <span className={`tag ${avg >= 3 ? 'tag-green' : ''}`} style={{ fontSize: 10 }}>{scoreLabel}</span>
+                <span style={{ fontWeight: 700, color: scoreColor, fontSize: 16, minWidth: 30, textAlign: 'right' }}>{avg.toFixed(1)}</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: '0 18px 14px' }} onClick={(e) => e.stopPropagation()}>
+                  {/* Score bars */}
+                  <div className="score-dims" style={{ marginBottom: 12 }}>
+                    {['substance', 'structure', 'relevance', 'credibility', 'differentiation'].map((dim) => {
+                      const val = a.scores?.[dim] ?? 0;
+                      return (
+                        <div className="score-dim" key={dim}>
+                          <span className="score-dim-label">{dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
+                          <div className="score-dim-bar">
+                            <div className="score-dim-fill" style={{ width: `${(val / 5) * 100}%`, background: `var(--c-${dim})` }} />
+                          </div>
+                          <span className="score-dim-val">{val.toFixed(1)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Feedback */}
+                  <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', marginBottom: 8 }}>{a.feedback}</p>
+
+                  {a.suggestion && (
+                    <p style={{ fontSize: 13, color: 'var(--primary)', margin: '8px 0' }}>
+                      <strong>Tip:</strong> {a.suggestion}
+                    </p>
+                  )}
+
+                  {/* Tabs */}
+                  {(hasBullets || hasExemplar || hasDrill) && (
+                    <>
+                      <div className="scorecard-tabs">
+                        {hasBullets && <button className={`scorecard-tab${tab === 'coaching' ? ' active' : ''}`} onClick={() => setActiveTab(p => ({ ...p, [tabKey]: 'coaching' }))}>Coaching Notes</button>}
+                        {hasExemplar && <button className={`scorecard-tab${tab === 'exemplar' ? ' active' : ''}`} onClick={() => setActiveTab(p => ({ ...p, [tabKey]: 'exemplar' }))}>Exemplar Answer</button>}
+                        {hasDrill && <button className={`scorecard-tab${tab === 'drill' ? ' active' : ''}`} onClick={() => setActiveTab(p => ({ ...p, [tabKey]: 'drill' }))}>Quick Drill</button>}
+                      </div>
+                      <div className="scorecard-tab-panel">
+                        {tab === 'coaching' && hasBullets && (
+                          <ul className="scorecard-bullets">{a.coaching_bullets.map((b: string, j: number) => <li key={j}>{b}</li>)}</ul>
+                        )}
+                        {tab === 'exemplar' && hasExemplar && (
+                          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{a.exemplar_answer}</p>
+                        )}
+                        {tab === 'drill' && hasDrill && (
+                          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)' }}>{a.micro_drill}</p>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ────────── GuidedPracticeInfo Sub-component ────────── */
 
@@ -930,6 +1037,7 @@ interface ActiveSessionProps {
   totalQuestions: number;
   goToQuestion: (index: number) => void;
   onBackToList: () => void;
+  pastActivity: any[];
   inputMode: 'voice' | 'text';
   setInputMode: (m: 'voice' | 'text') => void;
   answerText: string;
@@ -958,6 +1066,7 @@ function ActiveSession({
   totalQuestions,
   goToQuestion,
   onBackToList,
+  pastActivity,
   inputMode,
   setInputMode,
   answerText,
@@ -1172,6 +1281,11 @@ function ActiveSession({
             End Session
           </button>
         </div>
+      )}
+
+      {/* Previous Attempts for this question */}
+      {pastActivity.length > 0 && (
+        <PreviousAttempts attempts={pastActivity} />
       )}
 
       {/* Session Debrief */}
