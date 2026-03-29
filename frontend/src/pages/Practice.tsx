@@ -417,13 +417,13 @@ export function Practice() {
                             {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                           </span>
                         )}
-                        {!q.theme && q._source === 'story_specific' && (
+                        {!q.theme && q._source === 'story_specific' || q._source === 'story' && (
                           <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>From Story</span>
                         )}
-                        {!q.theme && q._source === 'resume_gap' && (
+                        {!q.theme && q._source === 'resume_gap' || q._source === 'gap' && (
                           <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
                         )}
-                        {!q.theme && q._source === 'job_specific' && (
+                        {!q.theme && q._source === 'job_specific' || q._source === 'job' && (
                           <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
                         )}
                       </div>
@@ -649,13 +649,13 @@ export function Practice() {
                               {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                             </span>
                           )}
-                          {!q.theme && q._source === 'story_specific' && (
+                          {!q.theme && q._source === 'story_specific' || q._source === 'story' && (
                             <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>Story Gap</span>
                           )}
-                          {!q.theme && q._source === 'resume_gap' && (
+                          {!q.theme && q._source === 'resume_gap' || q._source === 'gap' && (
                             <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
                           )}
-                          {!q.theme && q._source === 'job_specific' && (
+                          {!q.theme && q._source === 'job_specific' || q._source === 'job' && (
                             <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
                           )}
                         </div>
