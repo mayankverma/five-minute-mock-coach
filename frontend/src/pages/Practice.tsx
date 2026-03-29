@@ -580,40 +580,111 @@ export function Practice() {
                 </div>
               )}
 
-              {/* Question Preview */}
+              {/* Question Browser for Guided Practice */}
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-header">
-                  <span className="card-title">Questions</span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {stagePreviewLoading ? 'Loading...' : `${previewQuestions.length} questions`}
+                  <span className="card-title">
+                    Questions
+                    <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
+                      {stagePreviewLoading ? '...' : previewQuestions.length}
+                    </span>
                   </span>
+                  <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    <button
+                      className={`btn btn-sm ${practiceMode === 'single' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => { setPracticeMode('single'); setSelectedIds(new Set()); }}
+                      style={{ borderRadius: 0 }}
+                    >
+                      Practice Single
+                    </button>
+                    <button
+                      className={`btn btn-sm ${practiceMode === 'multi' ? 'btn-primary' : 'btn-outline'}`}
+                      onClick={() => setPracticeMode('multi')}
+                      style={{ borderRadius: 0 }}
+                    >
+                      Practice Multiple
+                    </button>
+                  </div>
                 </div>
+
+                {/* Multi-mode action bar */}
+                {practiceMode === 'multi' && selectedIds.size > 0 && (
+                  <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-muted)', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => startWithQuestions([...selectedIds])}
+                    >
+                      Practice Selected ({selectedIds.size})
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setSelectedIds(new Set())}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+
                 <div className="card-body" style={{ padding: 0 }}>
                   {previewQuestions.length > 0 ? (
                     previewQuestions.map((q: any, i: number) => (
-                      <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
-                        {q.question_text || q.title}
-                        {q.frequency === 'very_high' && (
-                          <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
-                        )}
-                        {q.theme && (
-                          <span className="tag" style={{ fontSize: 9, marginLeft: 8 }}>
-                            {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                      <div key={q.id || i} className="question-row">
+                        {/* Star */}
+                        <button
+                          className={`star-btn${isStarred(q.id) ? ' starred' : ''}`}
+                          onClick={(e) => { e.stopPropagation(); toggleStar(q.id, q._source || 'bank'); }}
+                          title={isStarred(q.id) ? 'Unstar' : 'Star this question'}
+                        >
+                          {isStarred(q.id) ? '\u2605' : '\u2606'}
+                        </button>
+
+                        {/* Question text + badges */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            {q.question_text || q.title}
                           </span>
+                          {q.frequency === 'very_high' && (
+                            <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
+                          )}
+                          {q.theme && (
+                            <span className="tag" style={{ fontSize: 9, marginLeft: 8 }}>
+                              {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action: Practice button or checkbox */}
+                        {practiceMode === 'single' ? (
+                          <button
+                            className="btn btn-outline btn-sm"
+                            onClick={() => startWithQuestions([q.id])}
+                          >
+                            Practice
+                          </button>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(q.id)}
+                            onChange={(e) => {
+                              setSelectedIds(prev => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(q.id);
+                                else next.delete(q.id);
+                                return next;
+                              });
+                            }}
+                            style={{ width: 18, height: 18, cursor: 'pointer' }}
+                          />
                         )}
                       </div>
                     ))
-                  ) : !stagePreviewLoading ? (
+                  ) : stagePreviewLoading ? (
+                    <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>Loading questions...</p>
+                  ) : (
                     <p style={{ padding: 18, color: 'var(--text-muted)', fontSize: 13 }}>No questions available for this stage.</p>
-                  ) : null}
+                  )}
                 </div>
               </div>
-
-              {/* Practice Stage Button */}
-              <button className="btn btn-primary" onClick={handleStartGuided}>
-                Practice Stage {selectedStage}
-              </button>
             </>
           )}
 
