@@ -417,6 +417,15 @@ export function Practice() {
                             {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
                           </span>
                         )}
+                        {!q.theme && q._source === 'story_specific' && (
+                          <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>From Story</span>
+                        )}
+                        {!q.theme && q._source === 'resume_gap' && (
+                          <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
+                        )}
+                        {!q.theme && q._source === 'job_specific' && (
+                          <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
+                        )}
                       </div>
 
                       {/* Action: Practice button or checkbox */}
@@ -638,6 +647,25 @@ export function Practice() {
                           {q.theme && (
                             <span className="tag tag-neutral" style={{ fontSize: 9, marginLeft: 8 }}>
                               {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            </span>
+                          )}
+                          {!q.theme && q._source === 'story_specific' && (
+                            <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>From Story</span>
+                          )}
+                          {!q.theme && q._source === 'resume_gap' && (
+                            <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
+                          )}
+                          {!q.theme && q._source === 'job_specific' && (
+                            <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
+                          )}
+                          {q.competency_tested && (
+                            <span className="tag tag-neutral" style={{ fontSize: 9, marginLeft: 8 }}>
+                              {q.competency_tested.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            </span>
+                          )}
+                          {q.gap_targeted && (
+                            <span className="tag tag-neutral" style={{ fontSize: 9, marginLeft: 8 }}>
+                              {q.gap_targeted.substring(0, 40)}{q.gap_targeted.length > 40 ? '...' : ''}
                             </span>
                           )}
                         </div>
