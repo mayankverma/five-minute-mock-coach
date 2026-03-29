@@ -26,6 +26,21 @@ class QuestionGenerator:
         db = get_supabase()
         story_id = story["id"]
 
+        # Extract role and seniority from user context
+        profile = user_context.get("profile", {})
+        target_roles = profile.get("target_roles", [])
+        seniority = profile.get("seniority_band", "mid")
+        role_context = ""
+        if target_roles:
+            role_context = (
+                f"\n## Candidate Context\n"
+                f"**Target Role(s):** {', '.join(target_roles)}\n"
+                f"**Seniority:** {seniority}\n"
+                f"Frame questions as a {seniority}-level {target_roles[0] if target_roles else 'professional'} "
+                f"would encounter in real interviews. "
+                f"Use role-appropriate language and competency framing.\n"
+            )
+
         message = (
             f"## Story\n"
             f"**Title:** {story.get('title', 'Untitled')}\n"
@@ -35,10 +50,15 @@ class QuestionGenerator:
             f"**Action:** {story.get('action', 'N/A')}\n"
             f"**Result:** {story.get('result', 'N/A')}\n"
             f"**Deploy For:** {story.get('deploy_for', 'N/A')}\n"
+            f"{role_context}"
             f"\n## Instructions\n"
             f"Generate {count} behavioral interview questions that this story could answer. "
             f"Each question should test the story from a different angle — different competencies, "
-            f"framings, or levels of difficulty. For each question, also provide 2-3 variations "
+            f"framings, or levels of difficulty. "
+            f"Questions should sound like what a real interviewer would ask for the candidate's "
+            f"target role and seniority level. Mix themes across leadership, execution, collaboration, "
+            f"problem-solving, and role-specific competencies. "
+            f"For each question, also provide 2-3 variations "
             f"(alternate phrasings testing the same thing).\n\n"
             f"Return JSON array: ["
             f'{{"question_text": "...", "variations": ["...", "..."], "competency_tested": "..."}}'
@@ -84,13 +104,40 @@ class QuestionGenerator:
         """
         db = get_supabase()
 
+        # Extract role and seniority from user context
+        profile = user_context.get("profile", {})
+        target_roles = profile.get("target_roles", [])
+        seniority = profile.get("seniority_band", "mid")
+        role_context = ""
+        if target_roles:
+            role_context = (
+                f"\n## Candidate Context\n"
+                f"**Target Role(s):** {', '.join(target_roles)}\n"
+                f"**Seniority:** {seniority}\n"
+                f"Frame questions at the {seniority} level for a {target_roles[0] if target_roles else 'professional'} role.\n"
+            )
+
+        # Workspace context if available
+        workspace = user_context.get("workspace")
+        ws_context = ""
+        if workspace and workspace.get("company_name"):
+            ws_context = (
+                f"\n## Job Context\n"
+                f"**Company:** {workspace.get('company_name', '')}\n"
+                f"**Role:** {workspace.get('role_title', '')}\n"
+                f"Frame some questions as this specific company might ask them.\n"
+            )
+
         gap_list = "\n".join(f"- {g}" for g in gaps)
         message = (
-            f"## Career Gaps Identified\n{gap_list}\n\n"
-            f"## Instructions\n"
+            f"## Career Gaps Identified\n{gap_list}\n"
+            f"{role_context}{ws_context}"
+            f"\n## Instructions\n"
             f"Generate {count} behavioral interview questions that specifically target these gaps. "
             f"These are areas where the candidate lacks stories or evidence. "
-            f"Questions should expose the gap so the candidate can practice handling it — "
+            f"Questions should be calibrated to the candidate's seniority level and target role. "
+            f"They should sound like what a real interviewer would ask to probe these weaknesses. "
+            f"The candidate should practice handling these — "
             f"either by building a new story or practicing gap-handling patterns "
             f"(adjacent bridge, hypothetical, reframe, growth narrative).\n\n"
             f"For each question, provide 2-3 variations.\n\n"
