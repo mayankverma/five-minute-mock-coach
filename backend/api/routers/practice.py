@@ -63,6 +63,64 @@ class ShuffleRequest(BaseModel):
     used_variations: list[str] = []
 
 
+# ─── Question Generation ─────────────────────────────────────────────────────
+
+
+@router.post("/generate-questions")
+async def generate_practice_questions(
+    user: AuthUser = Depends(get_current_user),
+):
+    """Generate practice questions from user's stories and resume gaps."""
+    import json as json_mod
+
+    db = get_supabase()
+    user_context = await coach.build_user_context(user.id)
+    generated = {"story_questions": 0, "gap_questions": 0, "errors": []}
+
+    # Generate from stories
+    try:
+        stories_resp = db.table("story").select("*").eq("user_id", user.id).eq("status", "active").execute()
+        for story in (stories_resp.data or []):
+            try:
+                result = await question_generator.generate_story_questions(story, user_context)
+                generated["story_questions"] += len(result)
+            except Exception as e:
+                generated["errors"].append(f"Story '{story.get('title', '?')}': {str(e)[:100]}")
+    except Exception as e:
+        generated["errors"].append(f"Stories fetch: {str(e)[:100]}")
+
+    # Generate from resume gaps
+    try:
+        resume_resp = db.table("resume").select("id").eq("user_id", user.id).order("updated_at", desc=True).limit(1).execute()
+        if resume_resp.data:
+            resume_id = resume_resp.data[0]["id"]
+            analysis_resp = (
+                db.table("resume_analysis_v2")
+                .select("id, career_narrative_gaps")
+                .eq("resume_id", resume_id)
+                .limit(1)
+                .execute()
+            )
+            if analysis_resp.data and analysis_resp.data[0].get("career_narrative_gaps"):
+                gaps = analysis_resp.data[0]["career_narrative_gaps"]
+                if isinstance(gaps, str):
+                    gaps = json_mod.loads(gaps)
+                if isinstance(gaps, list) and len(gaps) > 0:
+                    try:
+                        result = await question_generator.generate_gap_questions(
+                            user_id=user.id,
+                            gaps=[str(g) for g in gaps],
+                            user_context=user_context,
+                        )
+                        generated["gap_questions"] = len(result)
+                    except Exception as e:
+                        generated["errors"].append(f"Gap questions: {str(e)[:100]}")
+    except Exception as e:
+        generated["errors"].append(f"Resume fetch: {str(e)[:100]}")
+
+    return generated
+
+
 # ─── Quick Practice ──────────────────────────────────────────────────────────
 
 

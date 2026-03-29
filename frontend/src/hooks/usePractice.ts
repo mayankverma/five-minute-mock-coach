@@ -333,5 +333,14 @@ export function usePractice() {
     goToQuestion,
     endSession,
     requestDebrief,
+    generateQuestions: useCallback(async () => {
+      try {
+        const res = await api.post('/api/practice/generate-questions');
+        return res.data;
+      } catch (err) {
+        console.error('generateQuestions failed', err);
+        return null;
+      }
+    }, []),
   };
 }
