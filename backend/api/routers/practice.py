@@ -490,11 +490,12 @@ async def submit_answer(
         1,
     )
 
-    # Save score entry with new fields
+    # Save score entry with new fields (including user's answer for review)
     score_data = {
         "user_id": user.id,
         "entry_type": "practice",
         "context": req.question_text[:200],
+        "answer_text": req.answer,
         "substance": score_result.substance,
         "structure": score_result.structure,
         "relevance": score_result.relevance,
@@ -854,6 +855,7 @@ async def get_practice_activity(
             "suggestion": feedback.get("suggestion", ""),
             "attempt_number": entry.get("attempt_number", 1),
             "input_mode": entry.get("input_mode", "text"),
+            "answer_text": entry.get("answer_text"),
             "created_at": entry.get("created_at"),
         })
 

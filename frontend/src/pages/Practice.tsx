@@ -687,6 +687,14 @@ function PreviousAttempts({ attempts }: { attempts: any[] }) {
               </div>
               {isOpen && (
                 <div style={{ padding: '0 18px 14px' }} onClick={(e) => e.stopPropagation()}>
+                  {/* User's answer */}
+                  {a.answer_text && (
+                    <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--bg-muted)', borderRadius: 6, border: '1px solid var(--border-light)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Your answer:</div>
+                      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{a.answer_text}</p>
+                    </div>
+                  )}
+
                   {/* Score bars */}
                   <div className="score-dims" style={{ marginBottom: 12 }}>
                     {['substance', 'structure', 'relevance', 'credibility', 'differentiation'].map((dim) => {

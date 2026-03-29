@@ -132,6 +132,7 @@ async def submit_mock_answer(
         "user_id": user.id,
         "entry_type": "mock",
         "context": req.question_text[:200],
+        "answer_text": req.answer,
         "substance": score_result.substance,
         "structure": score_result.structure,
         "relevance": score_result.relevance,

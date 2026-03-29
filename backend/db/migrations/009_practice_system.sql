@@ -58,7 +58,8 @@ ALTER TABLE score_entry
   ADD COLUMN IF NOT EXISTS attempt_number INTEGER DEFAULT 1,
   ADD COLUMN IF NOT EXISTS input_mode TEXT CHECK (input_mode IN ('voice', 'text')) DEFAULT 'text',
   ADD COLUMN IF NOT EXISTS presence NUMERIC(2,1),
-  ADD COLUMN IF NOT EXISTS question_id TEXT;
+  ADD COLUMN IF NOT EXISTS question_id TEXT,
+  ADD COLUMN IF NOT EXISTS answer_text TEXT;
 
 -- Extend user_question_history with source tracking
 ALTER TABLE user_question_history
