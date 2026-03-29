@@ -802,11 +802,20 @@ async def get_daily_stats(
     except Exception:
         daily_data = None
 
+    # Check if user has generated questions
+    try:
+        sq_count = db.table("story_question").select("id", count="exact").execute()
+        gq_count = db.table("gap_question").select("id", count="exact").eq("user_id", user.id).execute()
+        has_generated = ((sq_count.count or 0) + (gq_count.count or 0)) > 0
+    except Exception:
+        has_generated = False
+
     if daily_data:
         return {
             "today": {"questions_answered": daily_data.get("questions_answered", 0)},
             "streak": daily_data.get("streak_count", 0),
             "practiced_today": True,
+            "has_generated_questions": has_generated,
         }
 
     # No record for today — check yesterday for streak context
@@ -828,6 +837,7 @@ async def get_daily_stats(
         "today": {"questions_answered": 0},
         "streak": 0,
         "practiced_today": False,
+        "has_generated_questions": has_generated,
     }
 
 

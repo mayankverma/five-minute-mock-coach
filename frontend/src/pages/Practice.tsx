@@ -220,6 +220,37 @@ export function Practice() {
         </div>
       </div>
 
+      {/* Generate personalized questions — shared across all tabs */}
+      {!dailyStats?.has_generated_questions && !generateResult && !hasSession && (
+        <div style={{ marginBottom: 14, padding: '12px 18px', background: 'var(--bg-muted)', borderRadius: 8, border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Personalize your practice</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Generate questions from your stories and resume gaps for targeted practice.</div>
+          </div>
+          <button
+            className="btn btn-primary btn-sm"
+            disabled={isGenerating}
+            onClick={async () => {
+              setIsGenerating(true);
+              const result = await generateQuestions();
+              setGenerateResult(result);
+              setIsGenerating(false);
+              if (result) {
+                setPreviewOffset(0);
+                setLoadedQuestions([]);
+              }
+            }}
+          >
+            {isGenerating ? 'Generating...' : 'Generate Questions'}
+          </button>
+        </div>
+      )}
+      {generateResult && (
+        <div style={{ marginBottom: 14, padding: '10px 18px', background: '#f0faf4', borderRadius: 8, border: '1px solid #c6e9d4', fontSize: 13, color: '#1d7a3f' }}>
+          Generated {generateResult.story_questions} story questions and {generateResult.gap_questions} gap questions.
+        </div>
+      )}
+
       {/* Mode Selector Tabs */}
       <div className="tabs">
         <button
@@ -311,37 +342,6 @@ export function Practice() {
               >
                 Shuffle
               </button>
-            </div>
-          )}
-
-          {/* Generate personalized questions prompt */}
-          {!hasSession && !generateResult && (
-            <div style={{ marginBottom: 14, padding: '12px 18px', background: 'var(--bg-muted)', borderRadius: 8, border: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Personalize your practice</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Generate questions from your stories and resume gaps for targeted practice.</div>
-              </div>
-              <button
-                className="btn btn-primary btn-sm"
-                disabled={isGenerating}
-                onClick={async () => {
-                  setIsGenerating(true);
-                  const result = await generateQuestions();
-                  setGenerateResult(result);
-                  setIsGenerating(false);
-                  if (result) {
-                    setPreviewOffset(0);
-                    setLoadedQuestions([]);
-                  }
-                }}
-              >
-                {isGenerating ? 'Generating...' : 'Generate Questions'}
-              </button>
-            </div>
-          )}
-          {generateResult && (
-            <div style={{ marginBottom: 14, padding: '10px 18px', background: '#f0faf4', borderRadius: 8, border: '1px solid #c6e9d4', fontSize: 13, color: '#1d7a3f' }}>
-              Generated {generateResult.story_questions} story questions and {generateResult.gap_questions} gap questions.
             </div>
           )}
 
