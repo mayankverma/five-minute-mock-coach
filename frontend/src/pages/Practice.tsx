@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import './pages.css';
 import { usePractice } from '../hooks/usePractice';
-import type { PracticeTier, PracticeMode, QuestionSource } from '../hooks/usePractice';
+import type { PracticeTier, QuestionSource } from '../hooks/usePractice';
 import { useStarredQuestions } from '../hooks/useStarredQuestions';
 import { Scorecard } from '../components/Scorecard';
 import { SourceIndicator } from '../components/SourceIndicator';
@@ -44,7 +44,7 @@ export function Practice() {
   const [activeView, setActiveView] = useState<'practice' | 'history'>('practice');
   const [starredOnly, setStarredOnly] = useState(false);
 
-  const { isStarred, toggleStar, starredIds } = useStarredQuestions();
+  const { isStarred, toggleStar } = useStarredQuestions();
 
   const {
     mode,
@@ -68,7 +68,6 @@ export function Practice() {
     setInputMode,
     setAnswerText,
     startQuick,
-    startGuided,
     startWithQuestions,
     submitAnswer,
     tryAgain,
@@ -174,9 +173,6 @@ export function Practice() {
     }
   }, [mode, currentUnlocked]);
 
-  const handleStartGuided = () => {
-    startGuided(selectedStage, { question_count: 10 });
-  };
 
   const handleFinishOrNext = () => {
     if (isLastQuestion) {
@@ -868,7 +864,7 @@ function PreviousAttempts({ attempts }: { attempts: any[] }) {
   );
 }
 
-/* ────────── GuidedPracticeInfo Sub-component ────────── */
+/* ────────── Stage Details (used by info popover) ────────── */
 
 const STAGE_DETAILS: Record<number, { name: string; description: string; tests: string; gate: string }> = {
   1: { name: 'Ladder', description: 'Tell the same story at 30s, 60s, 90s, and 3 minutes', tests: 'Can you structure an answer at all?', gate: 'Structure >= 3.5' },
@@ -880,69 +876,6 @@ const STAGE_DETAILS: Record<number, { name: string; description: string; tests: 
   7: { name: 'Stress', description: 'High-pressure simulation with time crunch and curveballs', tests: 'Can you perform under maximum pressure?', gate: 'All dims >= 4.0' },
   8: { name: 'Technical', description: 'Thinking out loud, clarification-seeking, tradeoff articulation', tests: 'Can you communicate technical decisions?', gate: 'Structure + Substance >= 4.5' },
 };
-
-function GuidedPracticeInfo() {
-  const [showDetails, setShowDetails] = useState(false);
-
-  return (
-    <div className="card" style={{ marginBottom: 14 }}>
-      <div className="card-body" style={{ padding: '14px 18px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ fontSize: 20, lineHeight: 1 }}>&#127919;</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Build interview skills progressively</div>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-              Each stage builds on the last. Master structuring answers before handling pushback. Handle pushback before pivoting under pressure. Earn your way through — or skip ahead if you're ready.
-            </p>
-            <button
-              className="scorecard-expand-btn"
-              onClick={() => setShowDetails(!showDetails)}
-              style={{ marginTop: 8 }}
-            >
-              {showDetails ? 'Hide stage details' : 'Learn about each stage'}
-            </button>
-          </div>
-        </div>
-
-        {showDetails && (
-          <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: 12 }}>
-                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Stage</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>What you practice</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Why this order</th>
-                  <th style={{ padding: '6px 8px', fontWeight: 600 }}>Gate to advance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(STAGE_DETAILS).map(([num, stage]) => (
-                  <tr key={num} style={{ borderTop: '1px solid var(--border-light)' }}>
-                    <td style={{ padding: '8px', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      {num}. {stage.name}
-                    </td>
-                    <td style={{ padding: '8px', color: 'var(--text-secondary)' }}>
-                      {stage.description}
-                    </td>
-                    <td style={{ padding: '8px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      {stage.tests}
-                    </td>
-                    <td style={{ padding: '8px' }}>
-                      <span className="tag" style={{ fontSize: 10 }}>{stage.gate}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '12px 0 0', lineHeight: 1.5 }}>
-              Score 1-5 on each dimension after every answer. Meet the gate threshold on 3 consecutive rounds to unlock the next stage. You can skip ahead, but mastery badges are only earned through the gates.
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ────────── HistoryColumnHeaders Sub-component ────────── */
 
@@ -1016,19 +949,14 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
 
   // Score label and color based on average
   let scoreLabel: string;
-  let scoreTagClass: string;
   if (avg >= 4) {
     scoreLabel = 'Great Score';
-    scoreTagClass = '';
   } else if (avg >= 3) {
     scoreLabel = 'Good Score';
-    scoreTagClass = '';
   } else if (avg >= 2) {
     scoreLabel = 'Needs Work';
-    scoreTagClass = '';
   } else {
     scoreLabel = 'Weak';
-    scoreTagClass = '';
   }
   const scoreTagStyle = avg >= 4
     ? { background: '#e6f4ea', color: '#1d7a3f', border: '1px solid #c6e9d4' }
@@ -1461,7 +1389,7 @@ function ActiveSession({
       )}
 
       {/* Session Debrief */}
-      {debrief && (tier === 'session' || tier === 'round_prep') && (
+      {debrief && tier === 'session' && (
         <div className="card" style={{ marginBottom: 14 }}>
           <div className="card-header">
             <span className="card-title">Session Debrief</span>

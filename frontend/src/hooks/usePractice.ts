@@ -64,6 +64,7 @@ export interface DailyStats {
   today: { questions_answered: number };
   streak: number;
   practiced_today: boolean;
+  has_generated_questions?: boolean;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
