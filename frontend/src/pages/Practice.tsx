@@ -54,6 +54,7 @@ export function Practice() {
     currentQuestion,
     currentQuestionIndex,
     attempts,
+    allAttempts,
     isScoring,
     inputMode,
     answerText,
@@ -447,6 +448,7 @@ export function Practice() {
             <ActiveSession
               currentQuestion={currentQuestion}
               questions={questions}
+              allAttempts={allAttempts}
               currentQuestionIndex={currentQuestionIndex}
               totalQuestions={questions.length}
               goToQuestion={goToQuestion}
@@ -580,6 +582,7 @@ export function Practice() {
             <ActiveSession
               currentQuestion={currentQuestion}
               questions={questions}
+              allAttempts={allAttempts}
               currentQuestionIndex={currentQuestionIndex}
               totalQuestions={questions.length}
               goToQuestion={goToQuestion}
@@ -922,6 +925,7 @@ interface ActiveSessionProps {
     theme: string;
   };
   questions: { id: string; question_text: string; title: string; theme: string }[];
+  allAttempts: Record<number, { attemptNumber: number; average: number; scores: any }[]>;
   currentQuestionIndex: number;
   totalQuestions: number;
   goToQuestion: (index: number) => void;
@@ -949,6 +953,7 @@ interface ActiveSessionProps {
 function ActiveSession({
   currentQuestion,
   questions,
+  allAttempts,
   currentQuestionIndex,
   totalQuestions,
   goToQuestion,
@@ -992,16 +997,25 @@ function ActiveSession({
           <div className="card-body" style={{ padding: '8px 14px' }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>Questions:</span>
-              {questions.map((q, i) => (
+              {questions.map((q, i) => {
+                const qAttempts = allAttempts[i] || [];
+                const lastScore = qAttempts.length > 0 ? qAttempts[qAttempts.length - 1].average : null;
+                const hasAttempt = qAttempts.length > 0;
+                return (
                 <button
                   key={q.id || i}
-                  className={`btn btn-sm ${i === currentQuestionIndex ? 'btn-primary' : 'btn-outline'}`}
+                  className={`btn btn-sm ${i === currentQuestionIndex ? 'btn-primary' : hasAttempt ? 'btn-outline' : 'btn-outline'}`}
                   onClick={() => goToQuestion(i)}
-                  style={{ minWidth: 32, padding: '4px 8px', fontSize: 12 }}
-                  title={q.question_text?.substring(0, 60)}
+                  style={{ minWidth: 32, padding: '4px 8px', fontSize: 12, position: 'relative', borderColor: hasAttempt && i !== currentQuestionIndex ? (lastScore! >= 3 ? '#2d8a4e' : '#e6a817') : undefined }}
+                  title={hasAttempt ? `${q.question_text?.substring(0, 40)}... (Score: ${lastScore?.toFixed(1)})` : q.question_text?.substring(0, 60)}
                 >
                   {i + 1}
+                  {hasAttempt && i !== currentQuestionIndex && (
+                    <span style={{ position: 'absolute', top: -4, right: -4, width: 8, height: 8, borderRadius: '50%', background: lastScore! >= 3 ? '#2d8a4e' : '#e6a817' }} />
+                  )}
                 </button>
+                );
+              }
               ))}
             </div>
           </div>

@@ -75,7 +75,7 @@ export function usePractice() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<PracticeQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [attempts, setAttempts] = useState<AttemptScore[]>([]);
+  const [allAttempts, setAllAttempts] = useState<Record<number, AttemptScore[]>>({});
   const [isScoring, setIsScoring] = useState(false);
   const [inputMode, setInputMode] = useState<InputMode>('voice');
   const [answerText, setAnswerText] = useState('');
@@ -128,7 +128,7 @@ export function usePractice() {
       setSessionId(session_id);
       setQuestions(qs);
       setCurrentQuestionIndex(0);
-      setAttempts([]);
+      setAllAttempts({});
       setAnswerText('');
       setGateResult(null);
       setDebrief(null);
@@ -152,7 +152,7 @@ export function usePractice() {
       setSessionId(session_id);
       setQuestions(qs);
       setCurrentQuestionIndex(0);
-      setAttempts([]);
+      setAllAttempts({});
       setAnswerText('');
       setGateResult(null);
       setDebrief(null);
@@ -168,7 +168,8 @@ export function usePractice() {
     if (!sessionId || !questions[currentQuestionIndex]) return;
 
     const question = questions[currentQuestionIndex];
-    const attemptNumber = attempts.length + 1;
+    const currentAttempts = allAttempts[currentQuestionIndex] || [];
+    const attemptNumber = currentAttempts.length + 1;
 
     setIsScoring(true);
     try {
@@ -188,7 +189,10 @@ export function usePractice() {
         scores,
       };
 
-      setAttempts((prev) => [...prev, newAttempt]);
+      setAllAttempts((prev) => ({
+        ...prev,
+        [currentQuestionIndex]: [...(prev[currentQuestionIndex] || []), newAttempt],
+      }));
 
       if (gate_result) {
         setGateResult(gate_result);
@@ -198,7 +202,7 @@ export function usePractice() {
     } finally {
       setIsScoring(false);
     }
-  }, [sessionId, questions, currentQuestionIndex, attempts, answerText, inputMode]);
+  }, [sessionId, questions, currentQuestionIndex, allAttempts, answerText, inputMode]);
 
   const tryAgain = useCallback(() => {
     setAnswerText('');
@@ -234,7 +238,6 @@ export function usePractice() {
 
   const nextQuestion = useCallback(() => {
     setCurrentQuestionIndex((prev) => prev + 1);
-    setAttempts([]);
     setAnswerText('');
     setGateResult(null);
     setUsedVariations([]);
@@ -242,7 +245,6 @@ export function usePractice() {
 
   const goToQuestion = useCallback((index: number) => {
     setCurrentQuestionIndex(index);
-    setAttempts([]);
     setAnswerText('');
     setGateResult(null);
     setUsedVariations([]);
@@ -252,7 +254,7 @@ export function usePractice() {
     setSessionId(null);
     setQuestions([]);
     setCurrentQuestionIndex(0);
-    setAttempts([]);
+    setAllAttempts({});
     setIsScoring(false);
     setAnswerText('');
     setStageInfo(null);
@@ -281,7 +283,7 @@ export function usePractice() {
       setSessionId(session_id);
       setQuestions(qs);
       setCurrentQuestionIndex(0);
-      setAttempts([]);
+      setAllAttempts({});
       setAnswerText('');
       setGateResult(null);
       setDebrief(null);
@@ -303,7 +305,8 @@ export function usePractice() {
     questions,
     currentQuestionIndex,
     currentQuestion: questions[currentQuestionIndex] ?? null,
-    attempts,
+    attempts: allAttempts[currentQuestionIndex] || [],
+    allAttempts,
     isScoring,
     inputMode,
     answerText,
