@@ -201,13 +201,15 @@ export function Practice() {
           </svg>
           Practice
         </h1>
-        <p className="page-subtitle">
-          Sharpen your interview answers with scored practice and guided drills.
-          <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>
-            · <strong>{dailyStats?.streak ?? 0}</strong> day streak
-            · <strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today
-          </span>
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <p className="page-subtitle" style={{ margin: 0 }}>
+            Sharpen your interview answers with scored practice and guided drills.
+          </p>
+          <div style={{ display: 'flex', gap: 12, padding: '4px 12px', background: 'var(--bg-muted)', borderRadius: 6, fontSize: 13 }}>
+            <span><strong>{dailyStats?.streak ?? 0}</strong> day streak</span>
+            <span><strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today</span>
+          </div>
+        </div>
       </div>
 
       {/* Generate personalized questions — shared across all tabs */}
