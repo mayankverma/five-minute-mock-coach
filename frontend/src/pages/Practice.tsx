@@ -521,8 +521,24 @@ export function Practice() {
               <div className="card" style={{ marginBottom: 14 }}>
                 {/* Stage header with name + gate info */}
                 <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
-                  <span className="card-title">
+                  <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     Stage {selectedStage}: {stages[String(selectedStage)]?.name || STAGE_NAMES[selectedStage]}
+                    <InfoPopover label="">
+                      <strong style={{ display: 'block', marginBottom: 8 }}>Guided Practice</strong>
+                      <p style={{ margin: '0 0 10px', fontSize: 12, lineHeight: 1.5 }}>
+                        Each stage builds a specific interview skill. Master one to unlock the next.
+                      </p>
+                      <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                        <tbody>
+                          {Object.entries(STAGE_DETAILS).map(([num, s]) => (
+                            <tr key={num} style={{ borderTop: '1px solid var(--border-light)' }}>
+                              <td style={{ padding: '4px 6px', fontWeight: 600, whiteSpace: 'nowrap' }}>{num}. {s.name}</td>
+                              <td style={{ padding: '4px 6px', color: 'var(--text-muted)' }}>{s.tests}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </InfoPopover>
                   </span>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
                     {stages[String(selectedStage)] && (
@@ -550,7 +566,7 @@ export function Practice() {
                       const isDone = isPassed;
                       const className = `step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`;
                       return (
-                        <div className={className} key={stageNum} onClick={() => setSelectedStage(stageNum)} style={{ cursor: 'pointer' }}>
+                        <div className={className} key={stageNum} onClick={() => setSelectedStage(stageNum)} style={{ cursor: 'pointer' }} title={STAGE_DETAILS[stageNum]?.description || ''}>
                           <div className="step-dot">{stageNum}</div>
                           <div className="step-label">
                             {STAGE_NAMES[stageNum]}
