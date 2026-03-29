@@ -24,7 +24,7 @@ export function MockSession({
   onEnd,
 }: MockSessionProps) {
   const isLastQuestion =
-    currentQuestion.questionNumber === currentQuestion.totalQuestions;
+    currentQuestion.question_number === currentQuestion.total_questions;
 
   return (
     <div className="card">
@@ -47,7 +47,7 @@ export function MockSession({
           {format.name} Interview
         </span>
         <span className="tag tag-primary">
-          {currentQuestion.questionNumber} / {currentQuestion.totalQuestions}
+          {currentQuestion.question_number} / {currentQuestion.total_questions}
         </span>
       </div>
       <div className="card-body">
@@ -59,7 +59,7 @@ export function MockSession({
             marginBottom: 20,
           }}
         >
-          {Array.from({ length: currentQuestion.totalQuestions }).map((_, i) => (
+          {Array.from({ length: currentQuestion.total_questions }).map((_, i) => (
             <div
               key={i}
               style={{
@@ -67,7 +67,7 @@ export function MockSession({
                 height: 4,
                 borderRadius: 2,
                 background:
-                  i < currentQuestion.questionNumber
+                  i < currentQuestion.question_number
                     ? 'var(--primary)'
                     : 'var(--border)',
                 transition: 'background 0.2s',

@@ -1,0 +1,21 @@
+## Stage 2: Pushback — Skepticism & Pressure Handling
+
+This is a CREDIBILITY drill. After scoring, you MUST generate a pushback follow-up challenge.
+
+### Stage-Specific Scoring
+- Credibility is the GATE dimension. Be especially rigorous here.
+- Evaluate: Does the candidate own their contributions (I vs. we)?
+- Check: Are claims backed by evidence? Are tradeoffs acknowledged?
+- Look for defensive language, vague attributions, or over-claiming.
+
+### Pushback Challenge (REQUIRED)
+You MUST set follow_up_challenge to a skeptical pushback question. Find the weakest claim in the answer and challenge it directly. Examples:
+- "But couldn't you have just [simpler alternative]? Why was your approach necessary?"
+- "You said [specific claim]. How do you know that was actually your impact and not just the team's momentum?"
+- "So what? Why should an interviewer care about [the result you described]?"
+
+The pushback should feel like a real interviewer pushing back — direct, specific, not hostile but skeptical.
+
+### Stage-Specific Feedback
+- In stage_feedback, explain how the candidate handled ownership and evidence.
+- Note whether the answer would survive cross-examination.

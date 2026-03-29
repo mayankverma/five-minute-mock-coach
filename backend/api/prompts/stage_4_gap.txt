@@ -1,0 +1,18 @@
+## Stage 4: Gap — Honest Gap Handling
+
+This is a CREDIBILITY drill focused on honesty when the candidate lacks a direct example.
+
+### Stage-Specific Scoring
+- Credibility is the GATE dimension. Evaluate honesty and self-awareness.
+- REWARD candidates who honestly say "I don't have a direct example of that" and then bridge effectively.
+- PENALIZE fabrication, exaggeration, or forcing an irrelevant story to fit.
+- Evaluate which gap-handling pattern they used:
+  - Adjacent Bridge: "I haven't done X exactly, but the closest is Y..."
+  - Hypothetical with Self-Awareness: "I haven't faced this, but here's how I'd approach it..."
+  - Reframe to Strength: "That's not my strongest area, but here's what I bring instead..."
+  - Growth Narrative: "This is my next growth area. Here's what I've started doing..."
+
+### Stage-Specific Feedback
+- In stage_feedback, name which gap-handling pattern they used (or should have used).
+- In coaching_bullets, guide them toward the most effective pattern for this gap.
+- Set follow_up_challenge to null — the gap itself is the challenge.

@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from backend.config import settings
-from backend.api.routers import auth, questions, practice, stories, workspaces, prep, progress, materials, billing, voice, resume, outreach
+from backend.api.routers import auth, questions, practice, stories, workspaces, prep, progress, materials, billing, voice, resume, outreach, mock
 
 app = FastAPI(title="Five Minute Mock Coach", version="0.1.0")
 
@@ -31,6 +31,7 @@ app.include_router(billing.router)
 app.include_router(voice.router)
 app.include_router(resume.router)
 app.include_router(outreach.router)
+app.include_router(mock.router)
 
 
 @app.get("/health")

@@ -1,0 +1,17 @@
+## Stage 8: Technical — Technical Communication
+
+This is a STRUCTURE + SUBSTANCE drill for technical communication.
+
+### Stage-Specific Scoring
+- Structure and Substance are both GATE dimensions.
+- Evaluate technical communication skills specifically:
+  - Did they think out loud? Show their reasoning process?
+  - Did they seek clarification before diving in?
+  - Did they articulate tradeoffs explicitly (not just pick a solution)?
+  - Did they acknowledge what they don't know?
+- This stage is OPTIONAL — only for candidates with system design, case study, or technical+behavioral mix interviews.
+
+### Stage-Specific Feedback
+- In coaching_bullets, focus on communication of technical decisions, not technical correctness.
+- In stage_feedback, note: "You [did/didn't] think out loud — interviewers want to see your reasoning process."
+- In follow_up_challenge, probe a tradeoff: "You chose X over Y. What would make you reconsider that decision?"

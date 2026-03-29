@@ -1,0 +1,21 @@
+## Stage 5: Role — Specialist Scrutiny
+
+This is a SUBSTANCE drill. Evaluate from the perspective of a specialist in the candidate's target role.
+
+### Stage-Specific Scoring
+- Substance is the GATE dimension. Be especially rigorous on depth.
+- Adopt the lens of a senior specialist in the candidate's role:
+  - If PM: Engineering, Design, Data, Business, Competitor, Skeptic lenses
+  - If Engineer: Architecture, Trade-offs, Debugging, Collaboration, Edge Cases
+  - If Designer: Research, Rationale, Constraints, Accessibility, Impact
+  - If Data: Problem Framing, Data Quality, Methodology, Evaluation, Communication
+- Probe for depth beyond surface-level answers. Does the candidate show real expertise?
+
+### Specialist Follow-up (REQUIRED)
+Set follow_up_challenge to a specialist probe question that digs deeper into the technical/domain specifics. Examples:
+- For PM: "What was the specific metric you were optimizing for, and what did you sacrifice to hit it?"
+- For Engineer: "Walk me through the architecture decision. What alternatives did you consider?"
+- For Data: "How did you validate that your methodology was sound? What would invalidate your conclusions?"
+
+### Stage-Specific Feedback
+- In stage_feedback, note whether the answer demonstrated genuine domain expertise or stayed at surface level.

@@ -1,0 +1,15 @@
+## Stage 6: Panel — Multiple Interviewer Perspectives
+
+This is an ALL-DIMENSIONS drill. Score from 2-3 different interviewer perspectives.
+
+### Stage-Specific Scoring
+- ALL dimensions must meet the gate. No single weak dimension.
+- Evaluate the answer as 3 different interviewers would:
+  1. Hiring Manager: "Would I want this person on my team? Do they show leadership and judgment?"
+  2. Peer/IC: "Could I work with this person? Do they collaborate or steamroll?"
+  3. Skip-Level/Executive: "Does this person think at the right altitude? Strategic or tactical?"
+
+### Stage-Specific Feedback
+- In stage_feedback, provide the perspective of each interviewer type in 1-2 sentences each.
+- In coaching_bullets, note which interviewer persona would be most/least impressed and why.
+- In follow_up_challenge, ask from the perspective of the toughest interviewer: pick the persona that was least convinced.

@@ -959,9 +959,33 @@ git commit -m "fix: correct StoryBuilder dimensions for all viewport sizes"
 
 ## Task 13: Wire ElevenLabs voice mode for story conversations
 
+**Architecture:** ElevenLabs ConvAI handles the voice coaching (its own LLM + voice). Transcripts appear in the chat panel in real-time. When the voice session ends, the full transcript is sent to our backend's `POST /api/stories/chat` for extraction through the same pipeline as chat mode. This means the story extraction is always done by our backend, regardless of whether the user used chat or voice.
+
 **Files:**
+- Modify: `backend/config.py` (add `ELEVENLABS_STORY_AGENT_ID`)
+- Modify: `backend/api/services/voice_service.py` (accept agent_id parameter)
+- Modify: `backend/api/routers/voice.py` (add story-specific signed-url endpoint)
 - Create: `frontend/src/hooks/useStoryVoice.ts`
-- Modify: `frontend/src/components/StoryBuilder.tsx` (integrate voice hook)
+- Modify: `frontend/src/components/StoryBuilder.tsx` (integrate voice hook + post-session extraction)
+
+**Step 0: Add story agent ID to backend config**
+
+In `backend/config.py`, add to the Settings class:
+
+```python
+ELEVENLABS_STORY_AGENT_ID: str = ""
+```
+
+In `backend/api/services/voice_service.py`, update `get_signed_url` to accept an optional `agent_id` parameter, falling back to the default `ELEVENLABS_AGENT_ID` if not provided.
+
+In `backend/api/routers/voice.py`, add a new endpoint:
+
+```python
+@router.get("/story-signed-url")
+async def get_story_signed_url(user: AuthUser = Depends(get_current_user)):
+    url = await voice_service.get_signed_url(agent_id=settings.ELEVENLABS_STORY_AGENT_ID)
+    return {"signed_url": url}
+```
 
 **Step 1: Create the voice hook**
 
@@ -981,7 +1005,7 @@ interface UseStoryVoiceReturn {
 async function getSignedUrl(): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
-  const res = await fetch(`${API_URL}/api/voice/signed-url`, {
+  const res = await fetch(`${API_URL}/api/voice/story-signed-url`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error('Failed to get voice URL');
@@ -991,6 +1015,7 @@ async function getSignedUrl(): Promise<string> {
 
 export function useStoryVoice(
   onTranscript: (text: string, role: 'user' | 'coach') => void,
+  onSessionEnd?: () => void,
 ): UseStoryVoiceReturn {
   const [isConnected, setIsConnected] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -1020,6 +1045,7 @@ export function useStoryVoice(
       ws.onclose = () => {
         setIsConnected(false);
         setIsListening(false);
+        onSessionEnd?.();
       };
 
       ws.onerror = () => {
@@ -1042,16 +1068,44 @@ export function useStoryVoice(
 }
 ```
 
-**Step 2: Integrate into StoryBuilder**
+**Step 1b: Update the disconnect function to also trigger onSessionEnd**
+
+```typescript
+  const disconnect = useCallback(() => {
+    wsRef.current?.close(); // triggers onclose → onSessionEnd
+    wsRef.current = null;
+  }, []);
+```
+
+**Step 2: Integrate into StoryBuilder with post-session extraction**
 
 In StoryBuilder, when `mode === 'voice'`:
 
 ```typescript
+// Collect transcripts for post-session extraction
+const transcriptRef = useRef<{role: string, text: string}[]>([]);
+
 const handleVoiceTranscript = useCallback((text: string, role: 'user' | 'coach') => {
+  transcriptRef.current.push({ role, text });
+  // Also show in chat panel
   setMessages(prev => [...prev, { role, text }]);
 }, []);
 
-const { isConnected, isListening, connect, disconnect } = useStoryVoice(handleVoiceTranscript);
+const handleVoiceEnd = useCallback(() => {
+  // When voice session ends, send transcript to backend for extraction
+  const transcript = transcriptRef.current
+    .map(t => `${t.role === 'coach' ? 'Coach' : 'User'}: ${t.text}`)
+    .join('\n');
+  if (transcript.trim()) {
+    sendMessage(`Please extract a STAR story from this voice conversation transcript:\n\n${transcript}`);
+  }
+  transcriptRef.current = [];
+}, [sendMessage]);
+
+const { isConnected, isListening, connect, disconnect } = useStoryVoice(
+  handleVoiceTranscript,
+  handleVoiceEnd, // called when WebSocket closes
+);
 ```
 
 Update the voice area rendering:

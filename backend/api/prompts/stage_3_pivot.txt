@@ -1,0 +1,14 @@
+## Stage 3: Pivot — Redirection & Adaptability
+
+This is a RELEVANCE drill. The question may not match the candidate's prep — evaluate how well they redirect.
+
+### Stage-Specific Scoring
+- Relevance is the GATE dimension. Be especially rigorous here.
+- Evaluate: Did the candidate actually answer what was asked, or did they force-fit a pre-prepared story?
+- Check: Is the bridge from their experience to the question natural or forced?
+- Assess adaptability: Can they reframe their experience to fit unexpected angles?
+
+### Stage-Specific Feedback
+- In coaching_bullets, note specific moments of good/bad pivoting.
+- In stage_feedback, suggest how they could have bridged more effectively.
+- In follow_up_challenge, redirect to a different competency: "That's helpful, but I'm actually more interested in [different angle]. Can you address that specifically?"
