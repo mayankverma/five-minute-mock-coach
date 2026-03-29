@@ -9,6 +9,17 @@ import { Scorecard } from '../components/Scorecard';
 import { SourceIndicator } from '../components/SourceIndicator';
 import api from '../lib/api';
 
+function getScoreDisplay(avg: number) {
+  if (avg >= 4) return { label: 'Great Score', color: '#1d7a3f', tagStyle: { background: '#e6f4ea', color: '#1d7a3f', border: '1px solid #c6e9d4' } };
+  if (avg >= 3) return { label: 'Good Score', color: '#2d8a4e', tagStyle: { background: '#e6f4ea', color: '#2d8a4e', border: '1px solid #c6e9d4' } };
+  if (avg >= 2) return { label: 'Needs Work', color: '#e6a817', tagStyle: { background: '#fef9e7', color: '#b8860b', border: '1px solid #f0e0a0' } };
+  return { label: 'Weak', color: 'var(--text-danger)', tagStyle: { background: '#fde8e8', color: '#c0392b', border: '1px solid #f0c0c0' } };
+}
+
+function formatTheme(theme: string) {
+  return theme.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const THEME_OPTIONS = [
   'All',
   'leadership',
@@ -274,7 +285,7 @@ export function Practice() {
               >
                 {THEME_OPTIONS.map((t) => (
                   <option key={t} value={t}>
-                    {t === 'All' ? 'All Themes' : t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    {t === 'All' ? 'All Themes' : formatTheme(t)}
                   </option>
                 ))}
               </select>
@@ -410,16 +421,16 @@ export function Practice() {
                         )}
                         {q.theme && (
                           <span className="tag tag-neutral" style={{ fontSize: 9, marginLeft: 8 }}>
-                            {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                            {formatTheme(q.theme)}
                           </span>
                         )}
-                        {!q.theme && q._source === 'story_specific' || q._source === 'story' && (
+                        {!q.theme && (q._source === 'story_specific' || q._source === 'story') && (
                           <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>From Story</span>
                         )}
-                        {!q.theme && q._source === 'resume_gap' || q._source === 'gap' && (
+                        {!q.theme && (q._source === 'resume_gap' || q._source === 'gap') && (
                           <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
                         )}
-                        {!q.theme && q._source === 'job_specific' || q._source === 'job' && (
+                        {!q.theme && (q._source === 'job_specific' || q._source === 'job') && (
                           <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
                         )}
                       </div>
@@ -642,16 +653,16 @@ export function Practice() {
                           )}
                           {q.theme && (
                             <span className="tag tag-neutral" style={{ fontSize: 9, marginLeft: 8 }}>
-                              {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                              {formatTheme(q.theme)}
                             </span>
                           )}
-                          {!q.theme && q._source === 'story_specific' || q._source === 'story' && (
+                          {!q.theme && (q._source === 'story_specific' || q._source === 'story') && (
                             <span className="tag tag-purple" style={{ fontSize: 9, marginLeft: 8 }}>Story Gap</span>
                           )}
-                          {!q.theme && q._source === 'resume_gap' || q._source === 'gap' && (
+                          {!q.theme && (q._source === 'resume_gap' || q._source === 'gap') && (
                             <span className="tag tag-amber" style={{ fontSize: 9, marginLeft: 8 }}>Resume Gap</span>
                           )}
-                          {!q.theme && q._source === 'job_specific' || q._source === 'job' && (
+                          {!q.theme && (q._source === 'job_specific' || q._source === 'job') && (
                             <span className="tag tag-primary" style={{ fontSize: 9, marginLeft: 8 }}>Job-Specific</span>
                           )}
                         </div>
@@ -776,8 +787,7 @@ function PreviousAttempts({ attempts }: { attempts: any[] }) {
           const time = new Date(a.created_at).toLocaleString('en-US', {
             month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
           });
-          const scoreColor = avg >= 4 ? '#1d7a3f' : avg >= 3 ? '#2d8a4e' : avg >= 2 ? '#e6a817' : 'var(--text-danger)';
-          const scoreLabel = avg >= 4 ? 'Great' : avg >= 3 ? 'Good' : avg >= 2 ? 'Needs Work' : 'Weak';
+          const { label: scoreLabel, color: scoreColor, tagStyle: scoreTagStyleObj } = getScoreDisplay(avg);
           const isOpen = expandedId === (a.id || String(i));
           const tabKey = a.id || String(i);
           const tab = activeTab[tabKey] || 'coaching';
@@ -795,7 +805,7 @@ function PreviousAttempts({ attempts }: { attempts: any[] }) {
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 60 }}>{time}</span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Attempt {attempts.length - i}</span>
                 <span style={{ flex: 1 }} />
-                <span className="tag" style={{ fontSize: 10, ...(avg >= 3 ? { background: '#e6f4ea', color: '#1d7a3f', border: '1px solid #c6e9d4' } : avg >= 2 ? { background: '#fef9e7', color: '#b8860b', border: '1px solid #f0e0a0' } : { background: '#fde8e8', color: '#c0392b', border: '1px solid #f0c0c0' }) }}>{scoreLabel}</span>
+                <span className="tag" style={{ fontSize: 10, ...scoreTagStyleObj }}>{scoreLabel}</span>
                 <span style={{ fontWeight: 700, color: scoreColor, fontSize: 16, minWidth: 30, textAlign: 'right' }}>{avg.toFixed(1)}</span>
               </div>
               {isOpen && (
@@ -948,24 +958,7 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
   });
 
   // Score label and color based on average
-  let scoreLabel: string;
-  if (avg >= 4) {
-    scoreLabel = 'Great Score';
-  } else if (avg >= 3) {
-    scoreLabel = 'Good Score';
-  } else if (avg >= 2) {
-    scoreLabel = 'Needs Work';
-  } else {
-    scoreLabel = 'Weak';
-  }
-  const scoreTagStyle = avg >= 4
-    ? { background: '#e6f4ea', color: '#1d7a3f', border: '1px solid #c6e9d4' }
-    : avg >= 3
-    ? { background: '#e6f4ea', color: '#2d8a4e', border: '1px solid #c6e9d4' }
-    : avg >= 2
-    ? { background: '#fef9e7', color: '#b8860b', border: '1px solid #f0e0a0' }
-    : { background: '#fde8e8', color: '#c0392b', border: '1px solid #f0c0c0' };
-  const scoreColor = avg >= 4 ? '#1d7a3f' : avg >= 3 ? '#2d8a4e' : avg >= 2 ? '#e6a817' : 'var(--text-danger)';
+  const { label: scoreLabel, color: scoreColor, tagStyle: scoreTagStyle } = getScoreDisplay(avg);
 
   const hasExemplar = Boolean(entry.exemplar_answer);
   const hasDrill = Boolean(entry.micro_drill);
@@ -1217,7 +1210,7 @@ function ActiveSession({
 
           {currentQuestion.theme && (
             <span className="tag tag-primary" style={{ marginBottom: 14, display: 'inline-block' }}>
-              {currentQuestion.theme.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+              {formatTheme(currentQuestion.theme)}
             </span>
           )}
 

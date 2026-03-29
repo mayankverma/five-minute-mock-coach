@@ -815,9 +815,15 @@ async def get_daily_stats(
 
     # Check if user has generated questions
     try:
-        sq_count = db.table("story_question").select("id", count="exact").execute()
+        # story_question doesn't have user_id directly; join through story table
+        user_stories = db.table("story").select("id").eq("user_id", user.id).eq("status", "active").execute()
+        story_ids = [s["id"] for s in (user_stories.data or [])]
+        sq_count_val = 0
+        if story_ids:
+            sq_count = db.table("story_question").select("id", count="exact").in_("story_id", story_ids).execute()
+            sq_count_val = sq_count.count or 0
         gq_count = db.table("gap_question").select("id", count="exact").eq("user_id", user.id).execute()
-        has_generated = ((sq_count.count or 0) + (gq_count.count or 0)) > 0
+        has_generated = (sq_count_val + (gq_count.count or 0)) > 0
     except Exception:
         has_generated = False
 

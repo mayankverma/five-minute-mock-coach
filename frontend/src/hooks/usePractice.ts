@@ -103,6 +103,20 @@ export function usePractice() {
     },
   });
 
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  const resetForNewSession = useCallback((sid: string, qs: PracticeQuestion[]) => {
+    setSessionId(sid);
+    setQuestions(qs);
+    setCurrentQuestionIndex(0);
+    setAllAttempts({});
+    setAnswerText('');
+    setGateResult(null);
+    setDebrief(null);
+    setUsedVariations([]);
+    setStageInfo(null);
+  }, []);
+
   // ─── Actions ──────────────────────────────────────────────────────────────
 
   const startQuick = useCallback(async (opts?: {
@@ -126,15 +140,7 @@ export function usePractice() {
       const res = await api.post('/api/practice/quick/start', payload);
       const { session_id, questions: qs } = res.data;
 
-      setSessionId(session_id);
-      setQuestions(qs);
-      setCurrentQuestionIndex(0);
-      setAllAttempts({});
-      setAnswerText('');
-      setGateResult(null);
-      setDebrief(null);
-      setUsedVariations([]);
-      setStageInfo(null);
+      resetForNewSession(session_id, qs);
       setMode('quick');
     } catch (err) {
       console.error('startQuick failed', err);
@@ -150,14 +156,7 @@ export function usePractice() {
       const res = await api.post('/api/practice/guided/start', payload);
       const { session_id, questions: qs, stage_info } = res.data;
 
-      setSessionId(session_id);
-      setQuestions(qs);
-      setCurrentQuestionIndex(0);
-      setAllAttempts({});
-      setAnswerText('');
-      setGateResult(null);
-      setDebrief(null);
-      setUsedVariations([]);
+      resetForNewSession(session_id, qs);
       setStageInfo(stage_info ?? null);
       setMode('guided');
     } catch (err) {
@@ -281,15 +280,7 @@ export function usePractice() {
       });
       const { session_id, questions: qs, tier: resTier } = res.data;
 
-      setSessionId(session_id);
-      setQuestions(qs);
-      setCurrentQuestionIndex(0);
-      setAllAttempts({});
-      setAnswerText('');
-      setGateResult(null);
-      setDebrief(null);
-      setUsedVariations([]);
-      setStageInfo(null);
+      resetForNewSession(session_id, qs);
       setTier(resTier || (questionIds.length === 1 ? 'atomic' : 'session'));
       setMode('quick');
     } catch (err) {
