@@ -517,73 +517,54 @@ export function Practice() {
           {/* Stage Stepper */}
           {!hasSession && (
             <>
-              <GuidedPracticeInfo />
-
+              {/* Combined: Stage selector + info + questions — all in one card */}
               <div className="card" style={{ marginBottom: 14 }}>
-                <div className="card-header">
-                  <span className="card-title">8-Stage Guided Practice</span>
+                {/* Stage header with name + gate info */}
+                <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <span className="card-title">
+                    Stage {selectedStage}: {stages[String(selectedStage)]?.name || STAGE_NAMES[selectedStage]}
+                  </span>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
+                    {stages[String(selectedStage)] && (
+                      <>
+                        <span>{stages[String(selectedStage)].difficulty}</span>
+                        <span>·</span>
+                        <span>Gate: {stages[String(selectedStage)].gate_dim} &ge; {stages[String(selectedStage)].gate_score}</span>
+                        {stages[String(selectedStage)].time_limit && (
+                          <><span>·</span><span>{stages[String(selectedStage)].time_limit}s limit</span></>
+                        )}
+                      </>
+                    )}
+                    {selectedStage > currentUnlocked && (
+                      <span className="tag tag-amber" style={{ fontSize: 10 }}>Skipping ahead</span>
+                    )}
+                  </div>
                 </div>
-                <div className="card-body">
-                  <div className="stepper">
+
+                {/* Compact stepper + learn more */}
+                <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border-light)' }}>
+                  <div className="stepper" style={{ margin: 0 }}>
                     {[1, 2, 3, 4, 5, 6, 7, 8].map((stageNum) => {
                       const isPassed = gatesPassed.includes(String(stageNum));
                       const isActive = stageNum === selectedStage;
                       const isDone = isPassed;
                       const className = `step${isActive ? ' active' : ''}${isDone ? ' done' : ''}`;
                       return (
-                        <div
-                          className={className}
-                          key={stageNum}
-                          onClick={() => setSelectedStage(stageNum)}
-                          style={{ cursor: 'pointer' }}
-                        >
+                        <div className={className} key={stageNum} onClick={() => setSelectedStage(stageNum)} style={{ cursor: 'pointer' }}>
                           <div className="step-dot">{stageNum}</div>
                           <div className="step-label">
                             {STAGE_NAMES[stageNum]}
-                            {isPassed && (
-                              <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 4, padding: '1px 5px' }}>
-                                Mastered
-                              </span>
-                            )}
+                            {isPassed && <span className="tag tag-green" style={{ fontSize: 8, marginLeft: 3, padding: '1px 4px' }}>Done</span>}
                           </div>
                         </div>
                       );
                     })}
                   </div>
                 </div>
-              </div>
 
-              {/* Stage Info Card */}
-              {stages[String(selectedStage)] && (
-                <div className="card" style={{ marginBottom: 14 }}>
-                  <div className="card-header">
-                    <span className="card-title">Stage {selectedStage}: {stages[String(selectedStage)].name}</span>
-                    {selectedStage > currentUnlocked && (
-                      <span className="tag tag-amber" style={{ fontSize: 10 }}>Skipping ahead</span>
-                    )}
-                  </div>
-                  <div className="card-body">
-                    <div className="stat-row" style={{ flexWrap: 'wrap' }}>
-                      <span className="stat">
-                        Difficulty: <strong>{stages[String(selectedStage)].difficulty}</strong>
-                      </span>
-                      <span className="stat">
-                        Gate: <strong>{stages[String(selectedStage)].gate_dim}</strong> &ge; <strong>{stages[String(selectedStage)].gate_score}</strong> on 3 consecutive
-                      </span>
-                      {stages[String(selectedStage)].time_limit && (
-                        <span className="stat">
-                          Time limit: <strong>{stages[String(selectedStage)].time_limit}s</strong>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Question Browser for Guided Practice */}
-              <div className="card" style={{ marginBottom: 14 }}>
-                <div className="card-header">
-                  <span className="card-title">
+                {/* Questions header with Practice Single/Multiple toggle */}
+                <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>
                     Questions
                     <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: 8 }}>
                       {stagePreviewLoading ? '...' : previewQuestions.length}
