@@ -949,6 +949,14 @@ function HistoryEntry({ entry, onPracticeAgain }: { entry: any; onPracticeAgain:
 
       {expanded && (
         <div className="history-entry-detail" onClick={(e) => e.stopPropagation()}>
+          {/* User's answer */}
+          {entry.answer_text && (
+            <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--bg-muted)', borderRadius: 6, border: '1px solid var(--border-light)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Your answer:</div>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{entry.answer_text}</p>
+            </div>
+          )}
+
           <div className="score-dims" style={{ marginBottom: 12 }}>
             {['substance', 'structure', 'relevance', 'credibility', 'differentiation'].map((dim) => {
               const val = entry.scores?.[dim] ?? 0;
