@@ -203,21 +203,11 @@ export function Practice() {
         </h1>
         <p className="page-subtitle">
           Sharpen your interview answers with scored practice and guided drills.
+          <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>
+            · <strong>{dailyStats?.streak ?? 0}</strong> day streak
+            · <strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today
+          </span>
         </p>
-      </div>
-
-      {/* Daily Stats Bar */}
-      <div className="card" style={{ marginBottom: 14 }}>
-        <div className="card-body" style={{ padding: '12px 18px' }}>
-          <div className="stat-row">
-            <span className="stat">
-              <strong>{dailyStats?.streak ?? 0}</strong> day streak
-            </span>
-            <span className="stat">
-              <strong>{dailyStats?.today?.questions_answered ?? 0}</strong> questions today
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Generate personalized questions — shared across all tabs */}
