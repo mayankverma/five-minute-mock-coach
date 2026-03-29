@@ -411,19 +411,42 @@ async def get_guided_progression(
 async def guided_preview(
     user: AuthUser = Depends(get_current_user),
     stage: int = Query(1, ge=1, le=8),
-    count: int = Query(3, ge=1, le=10),
+    count: int = Query(10, ge=1, le=20),
 ):
-    """Preview questions for a guided stage without creating a session."""
+    """Preview questions for a guided stage — theme-diverse, frequency-sorted."""
+    db = get_supabase()
     stage_cfg = STAGE_CONFIG.get(stage)
     if not stage_cfg:
         raise HTTPException(400, f"Invalid stage: {stage}")
 
-    questions = await question_service.get_questions(
-        user_id=user.id,
-        count=count,
-        stage=stage,
-        difficulty=stage_cfg.get("difficulty"),
-    )
+    difficulty = stage_cfg.get("difficulty")
+    freq_order = {"very_high": 0, "high": 1, "medium": 2}
+
+    # Query bank questions filtered by difficulty
+    query = db.table("question").select("*")
+    if difficulty:
+        query = query.eq("difficulty", difficulty)
+    resp = query.execute()
+    pool = resp.data or []
+
+    # Sort by frequency
+    pool.sort(key=lambda q: (freq_order.get(q.get("frequency", "medium"), 2), q.get("theme", "")))
+
+    # Enforce theme diversity — max 2 per theme
+    diverse: list[dict] = []
+    theme_count: dict[str, int] = {}
+    for q in pool:
+        t = q.get("theme", "")
+        theme_count[t] = theme_count.get(t, 0) + 1
+        if theme_count[t] <= 2:
+            diverse.append(q)
+        if len(diverse) >= count:
+            break
+
+    questions = diverse[:count]
+    for q in questions:
+        q["_source"] = "bank"
+        q["_source_detail"] = f"From question bank — {q.get('frequency', 'medium')} frequency"
 
     return {
         "questions": questions,

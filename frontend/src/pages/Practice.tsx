@@ -134,7 +134,7 @@ export function Practice() {
   const { data: stagePreview, isLoading: stagePreviewLoading } = useQuery({
     queryKey: ['practice', 'stage-preview', selectedStage],
     queryFn: async () => {
-      const res = await api.get(`/api/practice/guided/preview?stage=${selectedStage}&count=3`);
+      const res = await api.get(`/api/practice/guided/preview?stage=${selectedStage}&count=10`);
       return res.data;
     },
     enabled: mode === 'guided' && activeView === 'practice' && !sessionId,
@@ -560,8 +560,13 @@ export function Practice() {
                       <div key={q.id || i} style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         <span style={{ color: 'var(--text-muted)', marginRight: 8 }}>{i + 1}.</span>
                         {q.question_text || q.title}
+                        {q.frequency === 'very_high' && (
+                          <span className="tag tag-green" style={{ fontSize: 9, marginLeft: 8 }}>Common</span>
+                        )}
                         {q.theme && (
-                          <span className="tag" style={{ fontSize: 10, marginLeft: 8 }}>{q.theme}</span>
+                          <span className="tag" style={{ fontSize: 9, marginLeft: 8 }}>
+                            {q.theme.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}
+                          </span>
                         )}
                       </div>
                     ))
