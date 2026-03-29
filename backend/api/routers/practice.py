@@ -527,8 +527,19 @@ async def submit_answer(
 
     workspace_id = session.get("workspace_id")
 
-    # Build user context and score the answer
+    # Build user context and inject drill stage for stage-specific scoring
     user_context = await coach.build_user_context(user.id, workspace_id)
+    if session.get("drill_type") == "guided" and session.get("stage"):
+        stage_num = session["stage"]
+        stage_cfg = STAGE_CONFIG.get(stage_num, {})
+        user_context["current_drill"] = {
+            "stage": stage_num,
+            "name": stage_cfg.get("name", ""),
+            "gate_dim": stage_cfg.get("gate_dim", ""),
+            "gate_score": stage_cfg.get("gate_score", 3.0),
+            "time_limit": stage_cfg.get("time_limit"),
+        }
+
     score_result = await scoring_engine.score_answer(
         question=req.question_text,
         answer=req.answer,

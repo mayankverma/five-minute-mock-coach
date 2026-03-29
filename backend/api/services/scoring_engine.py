@@ -21,6 +21,8 @@ class ScoreResult(BaseModel):
     coaching_bullets: list[str] = []
     exemplar_answer: Optional[str] = None
     micro_drill: Optional[str] = None
+    follow_up_challenge: Optional[str] = None
+    stage_feedback: Optional[str] = None
 
 
 class ScoringEngine:
@@ -54,6 +56,16 @@ class ScoringEngine:
                 f"Differentiation: {self_scores.get('differentiation', '?')}"
             )
 
+        # Add drill context if in a guided stage
+        drill = user_context.get("current_drill")
+        if drill:
+            message_parts.append(
+                f"\n## Drill Context\n"
+                f"This is a Stage {drill['stage']} ({drill.get('name', '')}) guided practice drill.\n"
+                f"Follow the stage-specific instructions in the system prompt.\n"
+                f"If the stage instructions ask for a follow_up_challenge, include it in the JSON."
+            )
+
         message_parts.append(
             "\n## Instructions\n"
             "Score this answer on all 5 core dimensions (1.0-5.0, use 0.5 increments). "
@@ -67,7 +79,9 @@ class ScoringEngine:
             "improvement_suggestion (single most impactful change), "
             "coaching_bullets (array of 3-5 specific actionable strings), "
             "exemplar_answer (170-260 word sample answer string), "
-            "micro_drill (1-minute exercise string targeting weakest dimension)."
+            "micro_drill (1-minute exercise string targeting weakest dimension), "
+            "follow_up_challenge (string or null — a pushback/probe question if stage requires it), "
+            "stage_feedback (string or null — stage-specific coaching note if in a guided drill)."
         )
 
         raw = await self.coach.coach_json("practice_scoring", user_context, "\n".join(message_parts))
@@ -88,6 +102,8 @@ class ScoringEngine:
             coaching_bullets=data.get("coaching_bullets", []),
             exemplar_answer=data.get("exemplar_answer"),
             micro_drill=data.get("micro_drill"),
+            follow_up_challenge=data.get("follow_up_challenge"),
+            stage_feedback=data.get("stage_feedback"),
         )
 
     async def generate_session_debrief(

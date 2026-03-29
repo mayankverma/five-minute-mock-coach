@@ -186,7 +186,20 @@ class PromptComposer:
                 f"\n---\n\n## Job Workspace Context\n" + "\n".join(f"- {p}" for p in ws_parts)
             )
 
-        # 8. Coaching strategy
+        # 8. Guided Practice drill context (stage-specific scoring)
+        drill = user_context.get("current_drill")
+        if drill and drill.get("stage"):
+            stage_name = drill.get("name", "").lower()
+            sections.append(
+                f"\n---\n\n## Current Drill: Stage {drill['stage']} — {drill.get('name', '')}\n"
+                f"Gate: {drill.get('gate_dim', '')} >= {drill.get('gate_score', 3.0)} on 3 consecutive rounds\n"
+            )
+            # Load stage-specific prompt module if it exists
+            stage_module = cls._load_module(f"stage_{drill['stage']}_{stage_name}")
+            if stage_module:
+                sections.append(stage_module)
+
+        # 9. Coaching strategy
         strategy = user_context.get("coaching_strategy")
         if strategy:
             strat_parts = []
