@@ -1299,6 +1299,38 @@ function ActiveSession({
         </div>
       )}
 
+      {/* Stage Feedback (guided mode) */}
+      {hasScored && latestAttempt?.scores?.stage_feedback && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-header">
+            <span className="card-title">Stage Coaching</span>
+          </div>
+          <div className="card-body">
+            <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--text-secondary)', margin: 0 }}>
+              {latestAttempt.scores.stage_feedback}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Follow-up Challenge (stages 2, 3, 5, 6, 7, 8) */}
+      {hasScored && latestAttempt?.scores?.follow_up_challenge && (
+        <div className="card" style={{ marginBottom: 14, borderLeft: '3px solid var(--primary)' }}>
+          <div className="card-header">
+            <span className="card-title">Follow-up Challenge</span>
+            <span className="tag" style={{ fontSize: 10 }}>Interviewer pushback</span>
+          </div>
+          <div className="card-body">
+            <p style={{ fontSize: 16, lineHeight: 1.5, fontFamily: 'var(--ff-display)', margin: '0 0 12px' }}>
+              {latestAttempt.scores.follow_up_challenge}
+            </p>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
+              Answer this follow-up to practice handling pushback. Click "Try Again" and address this challenge in your response.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Gate Result (guided mode) */}
       {gateResult && (
         <div className="card" style={{ marginBottom: 14 }}>
